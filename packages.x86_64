@@ -97,31 +97,27 @@ lightdm-gtk-greeter-settings
 accountsservice
 
 # default.desktop.cachyos
-xfce4
-#xfce4-goodies
+plasma-browser-integration
+plasma-desktop
+plasma-firewall
+plasma-framework
+plasma-integration
+plasma-nm
+plasma-pa
+plasma-systemmonitor
+plasma-thunderbolt
+plasma-workspace
 # goodies selection
 # mousepad (issues with sudo)
 xed
 parole
 ristretto
-thunar-archive-plugin
-thunar-media-tags-plugin
-xfce4-battery-plugin
-xfce4-datetime-plugin
-xfce4-mount-plugin
-xfce4-netload-plugin
-xfce4-notifyd
-xfce4-pulseaudio-plugin
-xfce4-screensaver
-xfce4-screenshooter
-xfce4-taskmanager
-xfce4-wavelan-plugin
-xfce4-weather-plugin
-xfce4-whiskermenu-plugin
-xfce4-xkb-plugin
+dolphin
+dolphin-plugins
+konsole
 neofetch
 
-# theme.xfce4.cachyos
+# theme.plasma.cachyos
 capitaine-cursors
 gtk-engine-murrine
 gnome-themes-extra
@@ -353,3 +349,9 @@ xf86-video-vmware
 
 #screen tearing at ISO
 xcompmgr
+
+# cachyos.welcome
+yad
+gspell
+#welcome
+meld
