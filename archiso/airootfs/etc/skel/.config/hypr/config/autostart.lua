@@ -1,0 +1,6 @@
+hl.on("hyprland.start", function()
+  hl.exec_cmd("canvas start")
+  hl.exec_cmd("systemctl --user start hyprpolkitagent")
+  hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
+  hl.exec_cmd("xdg-user-dirs-update")
+end)

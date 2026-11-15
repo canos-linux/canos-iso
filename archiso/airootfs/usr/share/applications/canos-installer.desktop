@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Install CanOS
+Name[de]=CanOS installieren
+Comment=Install CanOS on this computer
+Comment[de]=CanOS auf diesem Computer installieren
+Exec=sh -c "sudo -E calamares"
+Icon=calamares
+Categories=System;

@@ -1,0 +1,10 @@
+[terminal]
+vt = 1
+
+[default_session]
+command = "cage -s -- env XDG_CACHE_HOME=/tmp/canos-greeter qs -p /usr/share/canvas/greeter/shell.qml"
+user = "greeter"
+
+[initial_session]
+command = "start-hyprland"
+user = "liveuser"
