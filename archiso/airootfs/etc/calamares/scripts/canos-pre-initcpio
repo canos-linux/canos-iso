@@ -1,0 +1,12 @@
+#!/bin/bash
+# Runs inside the freshly unpacked system, before the initramfs is built:
+# drops live-only mkinitcpio settings and installs every kernel to /boot.
+rm -f /etc/mkinitcpio.conf.d/archiso.conf
+rm -f /etc/mkinitcpio.d/linux.preset
+for dir in /usr/lib/modules/*/; do
+    [ -f "$dir/pkgbase" ] && [ -f "$dir/vmlinuz" ] || continue
+    pkgbase=$(cat "$dir/pkgbase")
+    install -Dm644 "$dir/vmlinuz" "/boot/vmlinuz-$pkgbase"
+    sed "s|%PKGBASE%|$pkgbase|g" /usr/share/mkinitcpio/hook.preset > "/etc/mkinitcpio.d/$pkgbase.preset"
+done
+exit 0
