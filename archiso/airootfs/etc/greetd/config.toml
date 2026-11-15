@@ -2,7 +2,7 @@
 vt = 1
 
 [default_session]
-command = "cage -s -- env XDG_CACHE_HOME=/tmp/canos-greeter qs -p /usr/share/canvas/greeter/shell.qml"
+command = "cage -s -- env QT_WAYLAND_DISABLE_WINDOWDECORATION=1 XDG_CACHE_HOME=/tmp/canos-greeter qs -p /usr/share/canvas/greeter/shell.qml"
 user = "greeter"
 
 [initial_session]
