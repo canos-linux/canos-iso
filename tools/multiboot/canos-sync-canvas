@@ -1,0 +1,27 @@
+#!/bin/bash
+# canos-sync-canvas [subvolume...] - copy the Canvas working tree into CanOS subvolumes (run from Serpantinum).
+# Default targets: @canos-privat @canos-public @canos-public-clean. Source: $CANVAS_SRC or ~/CanOS/canvas.
+set -e
+[ "$(id -u)" = 0 ] || exec sudo CANVAS_SRC="$CANVAS_SRC" "$0" "$@"
+src="${CANVAS_SRC:-/home/${SUDO_USER:-$USER}/CanOS/canvas}"
+[ -f "$src/shell.qml" ] || { echo "no Canvas in $src"; exit 1; }
+targets=("$@"); [ ${#targets[@]} = 0 ] && targets=(@canos-privat @canos-public @canos-public-clean)
+dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
+root_sv=$(findmnt -no FSROOT /)
+M=$(mktemp -d); mount -o subvolid=5 "$dev" "$M"
+trap 'umount "$M"; rmdir "$M"' EXIT
+ver=$(git -C "$src" describe --always --dirty 2>/dev/null || echo unknown)
+for s in "${targets[@]}"; do
+  R="$M/$s"
+  [ "/$s" = "$root_sv" ] && { echo "skip $s (running system)"; continue; }
+  [ -d "$R/usr/share/canvas" ] || { echo "skip $s (no /usr/share/canvas)"; continue; }
+  ro=$(btrfs property get -ts "$R" ro | cut -d= -f2)
+  [ "$ro" = true ] && btrfs property set -ts "$R" ro false
+  rm -rf "$R/usr/share/canvas.new"; mkdir "$R/usr/share/canvas.new"
+  tar -C "$src" --exclude=.git --exclude=nettest.qml -c . | tar -C "$R/usr/share/canvas.new" -x --no-same-owner
+  echo "$ver" > "$R/usr/share/canvas.new/VERSION"
+  rm -rf "$R/usr/share/canvas.old"; mv "$R/usr/share/canvas" "$R/usr/share/canvas.old"
+  mv "$R/usr/share/canvas.new" "$R/usr/share/canvas"; rm -rf "$R/usr/share/canvas.old"
+  [ "$ro" = true ] && btrfs property set -ts "$R" ro true
+  echo "$s: Canvas $ver"
+done
