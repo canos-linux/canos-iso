@@ -64,8 +64,9 @@ case "$S" in
     btrfs subvolume list / | awk '{print $NF}' | tr '\n' ' '; echo
     btrfs subvolume show /run/top/@canos-public-clean 2>/dev/null | grep -i flags
     grep -E "^(menuentry|submenu) " /boot/grub/grub.cfg | sed "s/^\(menuentry\|submenu\) '\([^']*\)'.*/MENU: \2/"
-    i=0; grep -E "^(menuentry|submenu) " /boot/grub/grub.cfg | while read -r l; do
-        case "$l" in *"'CanOS Privat'"*) echo "IDX_PRIVAT=$i";; *"'CanOS Public'"*) echo "IDX_PUBLIC=$i";; esac; i=$((i+1)); done
+    # menu position as GRUB shows it (top-level entries incl. those inside if-blocks, not inside submenus)
+    awk '/^submenu /{print "TOP: " $0; sub_=1; next} sub_ && /^}/{sub_=0; next} !sub_ && /^[ \t]*menuentry /{print "TOP: " $0}' /boot/grub/grub.cfg \
+      | awk "/'CanOS Privat'/{print \"IDX_PRIVAT=\" NR-1} /'CanOS Public'/{print \"IDX_PUBLIC=\" NR-1}"
     sed -n '/BEGIN CanOS/,/END CanOS/p' /etc/grub.d/40_custom | grep -E "linux|initrd|search"
     grep DISTRIBUTOR /etc/default/grub; ls /etc/default/grub* /etc/grub.d/40_custom*
     sha256sum /boot/efi/EFI/Microsoft/Boot/bootmgfw.efi; efibootmgr | grep -iE "^Boot(Order|0)"

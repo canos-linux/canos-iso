@@ -22,7 +22,8 @@ mark() { wc -l < "$R/guest.txt"; }
 # boot from disk; $1 = number of "down" presses in GRUB (empty = default entry)
 bootdisk() {
     "$R/../multi-run.sh" disk || fail "VM start"
-    if [ -n "$1" ]; then sleep 6; for i in $(seq "$1"); do q key down; sleep 0.3; done; [ "$2" = shot ] && shot grub; q key ret; fi
+    # press Home every second until GRUB surely shows (stops the countdown, selects entry 0)
+    if [ -n "$1" ]; then sleep 3; for i in $(seq 10); do q key home; sleep 1; done; for i in $(seq "$1"); do q key down; sleep 0.3; done; [ "$2" = shot ] && shot grub; q key ret; fi
 }
 login() { sleep 100; q type canos123; q key ret; sleep 50; }
 
@@ -51,24 +52,24 @@ if [ "$FROM" -le 2 ]; then
     chk "PRIVAT_RC=0" $m "install CanOS Privat"; chk "PUBLIC_RC=0" $m "install CanOS Public"
     chk "GRUB_RC=0" $m "GRUB entries"; chk "SNAP_RC=0" $m "clean snapshots"
 fi
-P=$(g '^IDX_PRIVAT=' | cut -d= -f2); U=$(g '^IDX_PUBLIC=' | cut -d= -f2)
-[ -n "$P" ] && [ -n "$U" ] || fail "no GRUB index for CanOS entries"
-log "GRUB index privat=$P public=$U"
 if [ "$FROM" -le 3 ]; then
     log "3 Serpantinum (renamed) boots"; m=$(mark); phase check
     bootdisk 0 shot
     waitoff 300 || fail "Serpantinum check did not finish"
     chk "SERPANTINUM booted" $m "Serpantinum boots"; chk "MENU: Serpantinum Linux" $m "GRUB entry renamed"
 fi
+P=$(g '^IDX_PRIVAT=' | cut -d= -f2); U=$(g '^IDX_PUBLIC=' | cut -d= -f2)
+[ -n "$P" ] && [ -n "$U" ] || fail "no GRUB index for CanOS entries"
+log "GRUB index privat=$P public=$U"
 if [ "$FROM" -le 4 ]; then
     log "4 CanOS Privat"; m=$(mark); phase privat
     bootdisk "$P"; login; shot privat; stopvm
-    chk "^@canos-privat phase" $m "CanOS Privat boots"; chk "CANVAS_RUNNING" $m "Canvas runs (Privat)"
+    chk "##### @canos-privat phase" $m "CanOS Privat boots"; chk "CANVAS_RUNNING" $m "Canvas runs (Privat)"
 fi
 if [ "$FROM" -le 5 ]; then
     log "5 CanOS Public (first use)"; m=$(mark); phase pub1
     bootdisk "$U"; login; shot pub1; sleep 10; stopvm
-    chk "^@canos-public phase=pub1" $m "CanOS Public boots"; chk "CANVAS_RUNNING" $m "Canvas runs (Public)"
+    chk "##### @canos-public phase=pub1" $m "CanOS Public boots"; chk "CANVAS_RUNNING" $m "Canvas runs (Public)"
     chk "RESET_FROM_PUBLIC_RC=1" $m "reset refuses inside Public"; chk "usage simulated" $m "usage simulated"
 fi
 if [ "$FROM" -le 6 ]; then
