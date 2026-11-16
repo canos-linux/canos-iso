@@ -20,6 +20,7 @@ for s in "${targets[@]}"; do
   rm -rf "$R/usr/share/canvas.new"; mkdir "$R/usr/share/canvas.new"
   tar -C "$src" --exclude=.git --exclude=nettest.qml -c . | tar -C "$R/usr/share/canvas.new" -x --no-same-owner
   echo "$ver" > "$R/usr/share/canvas.new/VERSION"
+  chown -R root:root "$R/usr/share/canvas.new"; chmod -R u+rwX,go+rX,go-w "$R/usr/share/canvas.new"
   rm -rf "$R/usr/share/canvas.old"; mv "$R/usr/share/canvas" "$R/usr/share/canvas.old"
   mv "$R/usr/share/canvas.new" "$R/usr/share/canvas"; rm -rf "$R/usr/share/canvas.old"
   [ "$ro" = true ] && btrfs property set -ts "$R" ro true
