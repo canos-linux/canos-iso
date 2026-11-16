@@ -1,42 +1,38 @@
-These are the basic needed files and folders to build CachyOS system.
+# CanOS
 
-### buildiso
+**Yes, I CanOS.** – A fast, beautiful Linux system with its own desktop, [Canvas](https://github.com/tschaki11/canvas).
 
-buildiso is used to build CachyOS ISO.
+Website: **https://tschaki11.github.io/canos/**
 
-#### Arguments
+CanOS is based on [CachyOS](https://cachyos.org) and [Arch Linux](https://archlinux.org). This repository builds the CanOS live ISO with an offline Calamares installer.
 
-~~~
-$ ./buildiso.sh -h
-Usage: buildiso [options]
-    -c                 Disable clean work dir
-    -r                 Disable building in RAM on systems with more than 23GB RAM
-    -w                 Remove build directory (not the ISO) after ISO file is built
-    -h                 This help
-    -p <profile>       Buildset or profile [default: desktop]
-    -v                 Verbose output to log file, show profile detail (-q)
-~~~
+## Download
 
-* Uses the same signature that normal repo and has no mirrors package to install.
+The current ISO (`canos-1.0-x86_64.iso`) and its SHA256 checksum are linked on the website and in the GitHub releases.
 
-```bash
-sudo pacman -Syy
+## Build
+
+On an Arch-based system with `archiso`:
+
+```
+./canos-prepare.sh          # copies Canvas into the live system
+sudo ./buildiso.sh -p desktop -w
 ```
 
-### Install necessary packages:
-```bash
-sudo pacman -S archiso mkinitcpio-archiso git squashfs-tools grub --needed
-```
+The ISO ends up in `out/desktop/`.
 
-### Clone:
-```bash
-git clone https://github.com/cachyos/cachyos-live-iso.git cachyos-archiso
-cd cachyos-archiso
-```
+## What's inside
 
-### Build
-```bash
-sudo ./buildiso.sh -p desktop -v -w
-```
+- Canvas desktop on Hyprland, own greeter, GRUB theme and Calamares branding
+- CachyOS kernel (+ LTS), NVIDIA drivers kept only on NVIDIA machines
+- Firefox, Nautilus, Text Editor, Loupe, Celluloid, Papers, Calculator, kitty
+- `canos-update` (system + Flatpak updates)
+- `tools/multiboot/` – install CanOS next to another Linux on Btrfs subvolumes, with Secure Boot and a resettable public system
 
-As the result iso appears at the `out` folder
+## Credits
+
+CanOS stands on the shoulders of the [CachyOS live ISO](https://github.com/CachyOS/CachyOS-Live-ISO) and its team, Arch Linux, Hyprland, Quickshell and Calamares. Thank you!
+
+## License
+
+GPL-3.0 – see [LICENSE](LICENSE).
