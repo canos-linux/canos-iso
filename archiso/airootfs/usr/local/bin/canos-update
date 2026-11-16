@@ -1,0 +1,30 @@
+#!/bin/bash
+# canos-update - update CanOS: snapshot (if snapper is set up), system packages, flatpaks
+set -u
+c=$'\e[1;38;2;185;164;255m' n=$'\e[0m'
+de=0; case "${LANG:-}" in de*) de=1 ;; esac
+t() { [ $de = 1 ] && echo "$2" || echo "$1"; }
+say() { printf '\n%s==>%s %s\n' "$c" "$n" "$*"; }
+pause() { [ -t 0 ] && read -rp "$(t 'Press Enter to close' 'Enter zum Schließen') "; }
+
+say "$(t 'CanOS Update' 'CanOS-Update')"
+kernel_before=$(uname -r)
+if command -v snapper >/dev/null && sudo snapper list-configs 2>/dev/null | grep -q '^root '; then
+    say "$(t 'Creating snapshot' 'Snapshot wird erstellt')"
+    sudo snapper -c root create -c important -d "canos-update $(date +%F)" || true
+fi
+say "$(t 'Updating the system' 'System wird aktualisiert')"
+if ! sudo pacman -Syu; then
+    say "$(t 'The update failed.' 'Das Update ist fehlgeschlagen.')"
+    command -v canvas >/dev/null && canvas notify "CanOS" "$(t 'Update failed' 'Update fehlgeschlagen')" "" 2>/dev/null
+    pause; exit 1
+fi
+if command -v flatpak >/dev/null && [ -n "$(flatpak list --app 2>/dev/null)" ]; then
+    say "Flatpak"
+    flatpak update -y --noninteractive || true
+fi
+msg="$(t 'Everything is up to date' 'Alles ist aktuell')"
+[ -d "/usr/lib/modules/$kernel_before" ] || msg="$(t 'Restart to use the new kernel' 'Neu starten, um den neuen Kernel zu verwenden')"
+command -v canvas >/dev/null && canvas notify "CanOS" "$(t 'System updated' 'System aktualisiert')" "$msg" 2>/dev/null
+say "$msg"
+pause

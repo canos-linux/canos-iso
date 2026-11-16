@@ -5,7 +5,7 @@ iso_name="canos"
 iso_label="CANOS_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
 iso_publisher="Serkan Can Polat"
 iso_application="CanOS Live"
-iso_version="$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)"
+iso_version="1.0"
 install_dir="arch"
 buildmodes=('iso')
 ## GRUB
@@ -27,6 +27,7 @@ file_permissions=(
   ["/root/.gnupg"]="0:0:700"
   ["/usr/local/bin/choose-mirror"]="0:0:755"
   ["/usr/local/bin/dmcheck"]="0:0:755"
+  ["/usr/local/bin/canos-update"]="0:0:755"
   ["/usr/local/bin/calamares-online.sh"]="0:0:755"
   ["/usr/local/bin/remove-nvidia"]="0:0:755"
   ["/etc/calamares/scripts/canos-pre-initcpio"]="0:0:755"

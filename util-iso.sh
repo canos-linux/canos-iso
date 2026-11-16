@@ -191,7 +191,7 @@ run_build() {
     sudo chown $USER $outFolder
 
     cp ${work_dir}/iso/arch/pkglist.x86_64.txt "$outFolder/$_profile/$(gen_iso_fn).pkgs.txt"
-    mv "$outFolder/$_profile/canos-$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)-x86_64.iso" "$outFolder/$_profile/${iso_file}"
+    # mkarchiso already names it canos-<iso_version>-x86_64.iso
 
     msg "Done [Build ISO] ${iso_file}"
     msg "Finished building [%s]" "${_profile}"
@@ -230,10 +230,8 @@ run_build() {
 gen_iso_fn(){
     local vars=() name
     vars+=("canos")
-    [[ -n ${profile} ]] && vars+=("${profile}")
-
-    vars+=("linux")
-    vars+=("$(date +%y%m%d)")
+    vars+=("$(sed -n 's/^iso_version="\(.*\)"/\1/p' ${src_dir}/archiso/profiledef.sh)")
+    vars+=("x86_64")
 
     for n in ${vars[@]}; do
         name=${name:-}${name:+-}${n}

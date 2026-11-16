@@ -3,16 +3,27 @@
 # Run from the main system or CanOS Privat (not from CanOS Public itself).
 #   sudo canos-reset-public --snapshot   create the clean snapshots (once, after install, before first login)
 #   sudo canos-reset-public              restore @canos-public(-home) from the clean snapshots
+#   canos-reset-public --auto            non-interactive, for canos-reset-public.service (skips quietly if not set up)
+#   sudo canos-reset-public --install-service [root]   install + enable the boot service in / (or another root dir)
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "run as root"; exit 1; }
 
-mode=reset dev="" yes=0 name=canos-public
+mode=reset dev="" yes=0 auto=0 name=canos-public
 while [ $# -gt 0 ]; do
     case $1 in
         --snapshot) mode=snapshot ;;
         -d) dev=$2; shift ;;
         -n) name=$2; shift ;;
         -y) yes=1 ;;
+        --auto) auto=1; yes=1 ;;
+        --install-service)
+            dst=${2:-}; self=$(readlink -f "$0")
+            install -Dm755 "$self" "$dst/usr/local/bin/canos-reset-public"
+            install -Dm644 "$(dirname "$self")/canos-reset-public.service" "$dst/etc/systemd/system/canos-reset-public.service" 2>/dev/null \
+                || install -Dm644 /usr/local/share/canos/canos-reset-public.service "$dst/etc/systemd/system/canos-reset-public.service"
+            mkdir -p "$dst/etc/systemd/system/multi-user.target.wants"
+            ln -sf ../canos-reset-public.service "$dst/etc/systemd/system/multi-user.target.wants/canos-reset-public.service"
+            echo "installed canos-reset-public.service in ${dst:-/}"; exit 0 ;;
         *) echo "Usage: sudo canos-reset-public [--snapshot] [-d device] [-y]"; exit 1 ;;
     esac
     shift
@@ -21,8 +32,8 @@ svs=("@$name" "@$name-home")
 
 cur=$(findmnt -no OPTIONS / | grep -o 'subvol=[^,]*' | sed 's|subvol=/*||')
 for s in "${svs[@]}"; do
-    [ "$cur" = "$s" ] && { echo "Do not run this from CanOS Public itself - boot Serpantinum or CanOS Privat."; exit 1; }
-    findmnt -rno OPTIONS | grep -q "subvol=/$s\(,\|$\)" && { echo "$s is mounted - unmount it first"; exit 1; }
+    [ "$cur" = "$s" ] && { [ $auto = 1 ] && exit 0; echo "Do not run this from CanOS Public itself - boot Serpantinum or CanOS Privat."; exit 1; }
+    findmnt -rno OPTIONS | grep -q "subvol=/$s\(,\|$\)" && { [ $auto = 1 ] && exit 0; echo "$s is mounted - unmount it first"; exit 1; }
 done
 
 [ -n "$dev" ] || dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
@@ -30,7 +41,7 @@ top=$(mktemp -d /tmp/canos-reset.XXXX)
 trap 'umount "$top" 2>/dev/null; rmdir "$top"' EXIT
 mount -o subvolid=5 "$dev" "$top"
 
-for s in "${svs[@]}"; do [ -d "$top/$s" ] || { echo "$s not found on $dev"; exit 1; }; done
+for s in "${svs[@]}"; do [ -d "$top/$s" ] || { [ $auto = 1 ] && exit 0; echo "$s not found on $dev"; exit 1; }; done
 
 if [ $mode = snapshot ]; then
     for s in "${svs[@]}"; do
@@ -41,7 +52,7 @@ if [ $mode = snapshot ]; then
     exit 0
 fi
 
-for s in "${svs[@]}"; do [ -d "$top/$s-clean" ] || { echo "$s-clean missing - run --snapshot first"; exit 1; }; done
+for s in "${svs[@]}"; do [ -d "$top/$s-clean" ] || { [ $auto = 1 ] && exit 0; echo "$s-clean missing - run --snapshot first"; exit 1; }; done
 if [ $yes = 0 ]; then
     read -rp "Reset CanOS Public? Everything in it will be lost. [y/N] " a
     [ "$a" = y ] || exit 1

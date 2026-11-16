@@ -1,0 +1,11 @@
+[Unit]
+Description=Reset CanOS Public to its clean state
+After=local-fs.target
+ConditionPathExists=/usr/local/bin/canos-reset-public
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/canos-reset-public --auto
+
+[Install]
+WantedBy=multi-user.target
