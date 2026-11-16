@@ -67,5 +67,5 @@ hl.animation({ leaf = "borderangle", enabled = true, speed = 60, bezier = "smoot
 
 hl.layer_rule({ name = "canvas-blur", match = { namespace = "canvas" }, blur = true, ignore_alpha = 0.2 })
 hl.window_rule({ name = "canvas-windows", match = { class = "org.quickshell" }, float = true, center = true })
-hl.window_rule({ name = "calamares", match = { class = "calamares" }, float = true, size = "1100 720", center = true })
+hl.window_rule({ name = "calamares", match = { class = ".*[Cc]alamares.*" }, float = true, size = "1100 720", center = true })
 hl.window_rule({ name = "pavucontrol", match = { class = "org.pulseaudio.pavucontrol" }, float = true, size = "800 520", center = true })

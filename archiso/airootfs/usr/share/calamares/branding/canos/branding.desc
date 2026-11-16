@@ -1,0 +1,29 @@
+---
+componentName:  canos
+welcomeStyleCalamares:   false
+welcomeExpandingLogo:   true
+windowExpanding:    normal
+windowSize: 1100px,520px
+windowPlacement: center
+sidebar: qml,bottom
+navigation: widget
+strings:
+    productName:         CanOS
+    shortProductName:    CanOS
+    version:             Community
+    shortVersion:        Community
+    versionedName:       CanOS
+    shortVersionedName:  CanOS
+    bootloaderEntryName: CanOS
+    productUrl:          https://github.com/tschaki11/canvas
+images:
+    productLogo:         "logo.png"
+    productIcon:         "icon.png"
+    productWelcome:      "welcome.png"
+style:
+   SidebarBackground:        "#0f0d12"
+   SidebarText:              "#e6e1e7"
+   SidebarTextCurrent:       "#0f0d12"
+   SidebarBackgroundCurrent: "#cdbdff"
+slideshow:               "show.qml"
+slideshowAPI: 2
