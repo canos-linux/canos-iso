@@ -17,7 +17,8 @@ EOF
 [ "$(id -u)" = 0 ] || { echo "run as root"; exit 1; }
 custom=/etc/grub.d/40_custom defgrub=/etc/default/grub cfg=/boot/grub/grub.cfg
 
-backup() { [ -f "$1.canos-bak" ] || cp -a "$1" "$1.canos-bak"; }
+# backups go to /etc/default (a copy inside /etc/grub.d would be run by grub-mkconfig)
+backup() { b=/etc/default/$(basename "$1").canos-bak; [ -f "$b" ] || cp -a "$1" "$b"; }
 strip_block() { sed -i '/^### BEGIN CanOS/,/^### END CanOS/d' "$custom"; }
 mkcfg() { grub-mkconfig -o "$cfg" 2>&1 | tail -3; }
 
