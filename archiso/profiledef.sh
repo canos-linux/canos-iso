@@ -32,7 +32,6 @@ file_permissions=(
   ["/usr/local/bin/remove-nvidia"]="0:0:755"
   ["/etc/calamares/scripts/canos-pre-initcpio"]="0:0:755"
   ["/usr/share/canvas/bin/canvas"]="0:0:755"
-  ["/usr/share/canvas/bin/canvas-switch"]="0:0:755"
   ["/usr/share/canvas/greeter/install-greeter"]="0:0:755"
   ["/usr/local/bin/removeun"]="0:0:755"
   ["/usr/local/bin/removeun-online"]="0:0:755"
