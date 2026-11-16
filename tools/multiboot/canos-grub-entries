@@ -1,0 +1,79 @@
+#!/bin/bash
+# canos-grub-entries - add "CanOS Privat" / "CanOS Public" to the GRUB of the
+# main system (block in /etc/grub.d/40_custom) and optionally rename the main entry.
+# Only changes 40_custom, GRUB_DISTRIBUTOR and grub.cfg - no grub-install, no EFI changes.
+set -euo pipefail
+
+usage() {
+    cat <<EOF
+Usage: sudo canos-grub-entries [-d device] [-r distributor] [-n] [subvol:"Title" ...]
+  default entries: canos-privat:"CanOS Privat" canos-public:"CanOS Public" (if they exist)
+  -r <name>  set GRUB_DISTRIBUTOR (main entry becomes "<name> Linux"), e.g. Serpantinum
+  -n         do not run grub-mkconfig
+  --remove   (as only argument) remove the CanOS block again
+EOF
+    exit 1
+}
+[ "$(id -u)" = 0 ] || { echo "run as root"; exit 1; }
+custom=/etc/grub.d/40_custom defgrub=/etc/default/grub cfg=/boot/grub/grub.cfg
+
+backup() { [ -f "$1.canos-bak" ] || cp -a "$1" "$1.canos-bak"; }
+strip_block() { sed -i '/^### BEGIN CanOS/,/^### END CanOS/d' "$custom"; }
+mkcfg() { grub-mkconfig -o "$cfg" 2>&1 | tail -3; }
+
+if [ "${1:-}" = "--remove" ]; then backup "$custom"; strip_block; mkcfg; exit 0; fi
+
+dev="" distrib="" mk=1
+while getopts "d:r:nh" o; do
+    case $o in d) dev=$OPTARG ;; r) distrib=$OPTARG ;; n) mk=0 ;; *) usage ;; esac
+done
+shift $((OPTIND - 1))
+[ -n "$dev" ] || dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
+uuid=$(blkid -s UUID -o value "$dev")
+entries=("$@")
+[ ${#entries[@]} -gt 0 ] || entries=("canos-privat:CanOS Privat" "canos-public:CanOS Public")
+
+top=$(mktemp -d /tmp/canos-grub.XXXX)
+trap 'umount "$top" 2>/dev/null; rmdir "$top"' EXIT
+mount -o subvolid=5,ro "$dev" "$top"
+
+block="### BEGIN CanOS (canos-grub-entries)"$'\n'
+n=0
+for e in "${entries[@]}"; do
+    sv="@${e%%:*}" title="${e#*:}"
+    [ -d "$top/$sv/boot" ] || { echo "skip $title: $sv not found"; continue; }
+    k=vmlinuz-linux-cachyos
+    [ -f "$top/$sv/boot/$k" ] || k=$(cd "$top/$sv/boot" && ls vmlinuz-* | head -1)
+    i=initramfs-${k#vmlinuz-}.img
+    [ -f "$top/$sv/boot/$i" ] || { echo "skip $title: no $i"; continue; }
+    cmd=$(sed -n 's/^GRUB_CMDLINE_LINUX_DEFAULT=["'\'']\(.*\)["'\'']$/\1/p' "$top/$sv/etc/default/grub" 2>/dev/null | tail -1)
+    : "${cmd:=nowatchdog quiet splash}"
+    block+="menuentry '$title' --class canos --class gnu-linux --class os {
+	insmod part_gpt
+	insmod btrfs
+	search --no-floppy --fs-uuid --set=root $uuid
+	echo 'Loading $title ...'
+	linux /$sv/boot/$k root=UUID=$uuid rw rootflags=subvol=$sv $cmd
+	initrd /$sv/boot/$i
+}
+"
+    n=$((n + 1))
+done
+block+="### END CanOS"
+
+backup "$custom"; backup "$defgrub"
+strip_block
+printf '%s\n' "$block" >> "$custom"
+chmod 755 "$custom"
+echo "$n CanOS entries in $custom"
+
+if [ -n "$distrib" ]; then
+    if grep -q '^GRUB_DISTRIBUTOR=' "$defgrub"; then
+        sed -i "s/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=\"$distrib\"/" "$defgrub"
+    else
+        echo "GRUB_DISTRIBUTOR=\"$distrib\"" >> "$defgrub"
+    fi
+    echo "GRUB_DISTRIBUTOR=\"$distrib\""
+fi
+[ $mk = 1 ] && mkcfg
+exit 0

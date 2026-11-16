@@ -1,0 +1,161 @@
+#!/bin/bash
+# canos-install-subvol - install CanOS from the ISO into its own Btrfs subvolumes
+# (@<name> + @<name>-home) next to an existing system on the same Btrfs partition.
+# Same steps as the Calamares installer, but it never touches partitions,
+# the ESP or the bootloader (add the GRUB entry with canos-grub-entries).
+set -euo pipefail
+
+usage() {
+    cat <<EOF
+Usage: sudo canos-install-subvol [options] <name>      e.g. canos-privat
+  -i <iso|device|dir>  CanOS ISO file, CD device or mounted ISO (default: live medium)
+  -d <device>          Btrfs partition (default: device of /)
+  -u <user>            login name (default: alex)
+  -f <full name>       full name (default: login name)
+  -p <password>        password for user and root (default: ask)
+  -H <hostname>        hostname (default: <name>)
+  -l <locale>          default de_AT.UTF-8
+  -k <xkb layout>      default at
+  -c <console keymap>  default de-latin1
+  -t <timezone>        default Europe/Vienna
+  -y                   do not ask for confirmation
+EOF
+    exit 1
+}
+
+iso="" dev="" user="alex" full="" pass="" host="" yes=0
+loc="de_AT.UTF-8" xkb="at" keymap="de-latin1" tz="Europe/Vienna"
+while getopts "i:d:u:f:p:H:l:k:c:t:yh" o; do
+    case $o in
+        i) iso=$OPTARG ;; d) dev=$OPTARG ;; u) user=$OPTARG ;; f) full=$OPTARG ;;
+        p) pass=$OPTARG ;; H) host=$OPTARG ;; l) loc=$OPTARG ;; k) xkb=$OPTARG ;;
+        c) keymap=$OPTARG ;; t) tz=$OPTARG ;; y) yes=1 ;; *) usage ;;
+    esac
+done
+shift $((OPTIND - 1))
+name=${1:-}
+[[ $name =~ ^[a-z0-9][a-z0-9-]*$ ]] || usage
+[ "$(id -u)" = 0 ] || { echo "run as root"; exit 1; }
+: "${full:=$user}" "${host:=$name}"
+sv="@$name" svh="@$name-home"
+
+[ -n "$dev" ] || dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
+[ "$(blkid -s TYPE -o value "$dev")" = btrfs ] || { echo "$dev is not Btrfs"; exit 1; }
+uuid=$(blkid -s UUID -o value "$dev")
+
+if [ -z "$pass" ]; then
+    read -rsp "Password for $user (also root): " pass; echo
+    read -rsp "Repeat: " p2; echo
+    [ "$pass" = "$p2" ] && [ -n "$pass" ] || { echo "passwords do not match"; exit 1; }
+fi
+
+work=$(mktemp -d /tmp/canos-install.XXXX)
+top=$work/top tgt=$work/target med=$work/iso
+mkdir -p "$top" "$tgt" "$med"
+cleanup() {
+    set +e
+    mountpoint -q "$tgt" && umount -R "$tgt"
+    mountpoint -q "$top" && umount "$top"
+    mountpoint -q "$med" && umount "$med"
+    rmdir "$top" "$tgt" "$med" "$work" 2>/dev/null
+}
+trap cleanup EXIT
+
+# installation medium
+if [ -z "$iso" ]; then iso=/run/archiso/bootmnt; fi
+if [ -d "$iso" ]; then src=$iso; else mount -o loop,ro "$iso" "$med"; src=$med; fi
+sfs=$src/arch/x86_64/airootfs.sfs
+kernel=$src/arch/boot/x86_64/vmlinuz-linux-cachyos
+[ -f "$sfs" ] || { echo "no airootfs.sfs in $iso"; exit 1; }
+
+mount -o subvolid=5 "$dev" "$top"
+for s in "$sv" "$svh"; do
+    [ -e "$top/$s" ] && { echo "$s already exists - delete it first"; exit 1; }
+done
+echo "Install CanOS into $sv + $svh on $dev ($uuid), user $user, host $host"
+if [ $yes = 0 ]; then read -rp "Continue? [y/N] " a; [ "$a" = y ] || exit 1; fi
+
+step() { echo "==> $*"; }
+step "create subvolumes"
+btrfs -q subvolume create "$top/$sv"
+btrfs -q subvolume create "$top/$svh"
+opts=noatime,compress=zstd:1
+mount -o "subvol=/$sv,$opts" "$dev" "$tgt"
+mkdir -p "$tgt/home"
+mount -o "subvol=/$svh,$opts" "$dev" "$tgt/home"
+
+step "unpack system (airootfs.sfs)"
+unsquashfs -f -no-progress -d "$tgt" "$sfs" >/dev/null
+[ -f "$kernel" ] && install -Dm644 "$kernel" "$tgt/boot/vmlinuz-linux-cachyos"
+
+step "chroot mounts"
+for d in proc sys dev run; do mkdir -p "$tgt/$d"; done
+mount -t proc proc "$tgt/proc"
+mount -t sysfs sys "$tgt/sys"
+mount --bind /dev "$tgt/dev"
+mount -t devpts devpts "$tgt/dev/pts" -o gid=5,mode=620 2>/dev/null || true
+mount -t tmpfs tmpfs "$tgt/run"
+[ -d /sys/firmware/efi/efivars ] && mount -t efivarfs efivarfs "$tgt/sys/firmware/efi/efivars" 2>/dev/null || true
+ch() { chroot "$tgt" /bin/bash -c "$1"; }
+
+step "canospre (kernels, presets)"
+chroot "$tgt" /bin/bash < "$tgt/etc/calamares/scripts/canos-pre-initcpio"
+
+step "machine-id"
+rm -f "$tgt/etc/machine-id"
+ch "systemd-machine-id-setup >/dev/null"
+
+step "fstab"
+cat > "$tgt/etc/fstab" <<EOF
+# CanOS ($name) - created by canos-install-subvol
+UUID=$uuid /     btrfs subvol=/$sv,defaults,$opts 0 0
+UUID=$uuid /home btrfs subvol=/$svh,defaults,$opts 0 0
+tmpfs      /tmp  tmpfs defaults,noatime,mode=1777 0 0
+EOF
+
+step "locale, timezone, keyboard"
+for l in "$loc" en_US.UTF-8; do
+    sed -i "s/^#\s*\(${l//./\\.} UTF-8\)/\1/" "$tgt/etc/locale.gen"
+done
+ch "locale-gen >/dev/null"
+echo "LANG=$loc" > "$tgt/etc/locale.conf"
+ln -sf "/usr/share/zoneinfo/$tz" "$tgt/etc/localtime"
+echo "KEYMAP=$keymap" > "$tgt/etc/vconsole.conf"
+mkdir -p "$tgt/etc/X11/xorg.conf.d"
+cat > "$tgt/etc/X11/xorg.conf.d/00-keyboard.conf" <<EOF
+Section "InputClass"
+        Identifier "system-keyboard"
+        MatchIsKeyboard "on"
+        Option "XkbLayout" "$xkb"
+EndSection
+EOF
+
+step "initramfs"
+ch "mkinitcpio -P >/dev/null 2>&1" || { echo "mkinitcpio failed"; exit 1; }
+
+step "users"
+ch "userdel -r liveuser 2>/dev/null; true"
+for g in wheel rfkill sys users lp video network storage audio; do ch "getent group $g >/dev/null || groupadd $g"; done
+ch "useradd -m -s /bin/bash -c '$full' -G wheel,rfkill,sys,users,lp,video,network,storage,audio '$user'"
+chmod 700 "$tgt/home/$user"
+printf '%s:%s\nroot:%s\n' "$user" "$pass" "$pass" | chroot "$tgt" chpasswd
+echo "%wheel ALL=(ALL:ALL) ALL" > "$tgt/etc/sudoers.d/10-installer"
+chmod 440 "$tgt/etc/sudoers.d/10-installer"
+echo "$host" > "$tgt/etc/hostname"
+printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s\n' "$host" > "$tgt/etc/hosts"
+
+step "services, greeter"
+ch "systemctl enable NetworkManager >/dev/null 2>&1"
+ch "/usr/share/canvas/greeter/install-greeter"
+
+step "remove live packages"
+ch "/usr/local/bin/remove-nvidia >/dev/null 2>&1; /usr/local/bin/removeun >/dev/null 2>&1; rm -f /usr/local/bin/removeun /usr/local/bin/remove-nvidia" || true
+
+step "CanOS tools"
+here=$(dirname "$(readlink -f "$0")")
+for t in canos-install-subvol canos-reset-public canos-grub-entries; do
+    [ -f "$here/$t" ] && install -m755 "$here/$t" "$tgt/usr/local/bin/$t"
+done
+
+sync
+echo "Done: $sv + $svh. Next: canos-grub-entries (GRUB entry)."

@@ -1,0 +1,55 @@
+#!/bin/bash
+# canos-reset-public - reset "CanOS Public" to the state right after installation.
+# Run from the main system or CanOS Privat (not from CanOS Public itself).
+#   sudo canos-reset-public --snapshot   create the clean snapshots (once, after install, before first login)
+#   sudo canos-reset-public              restore @canos-public(-home) from the clean snapshots
+set -euo pipefail
+[ "$(id -u)" = 0 ] || { echo "run as root"; exit 1; }
+
+mode=reset dev="" yes=0 name=canos-public
+while [ $# -gt 0 ]; do
+    case $1 in
+        --snapshot) mode=snapshot ;;
+        -d) dev=$2; shift ;;
+        -n) name=$2; shift ;;
+        -y) yes=1 ;;
+        *) echo "Usage: sudo canos-reset-public [--snapshot] [-d device] [-y]"; exit 1 ;;
+    esac
+    shift
+done
+svs=("@$name" "@$name-home")
+
+cur=$(findmnt -no OPTIONS / | grep -o 'subvol=[^,]*' | sed 's|subvol=/*||')
+for s in "${svs[@]}"; do
+    [ "$cur" = "$s" ] && { echo "Do not run this from CanOS Public itself - boot Serpantinum or CanOS Privat."; exit 1; }
+    findmnt -rno OPTIONS | grep -q "subvol=/$s\(,\|$\)" && { echo "$s is mounted - unmount it first"; exit 1; }
+done
+
+[ -n "$dev" ] || dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
+top=$(mktemp -d /tmp/canos-reset.XXXX)
+trap 'umount "$top" 2>/dev/null; rmdir "$top"' EXIT
+mount -o subvolid=5 "$dev" "$top"
+
+for s in "${svs[@]}"; do [ -d "$top/$s" ] || { echo "$s not found on $dev"; exit 1; }; done
+
+if [ $mode = snapshot ]; then
+    for s in "${svs[@]}"; do
+        [ -d "$top/$s-clean" ] && btrfs -q subvolume delete "$top/$s-clean"
+        btrfs -q subvolume snapshot -r "$top/$s" "$top/$s-clean"
+        echo "snapshot $s-clean"
+    done
+    exit 0
+fi
+
+for s in "${svs[@]}"; do [ -d "$top/$s-clean" ] || { echo "$s-clean missing - run --snapshot first"; exit 1; }; done
+if [ $yes = 0 ]; then
+    read -rp "Reset CanOS Public? Everything in it will be lost. [y/N] " a
+    [ "$a" = y ] || exit 1
+fi
+for s in "${svs[@]}"; do
+    btrfs -q subvolume delete -R "$top/$s"
+    btrfs -q subvolume snapshot "$top/$s-clean" "$top/$s"
+    echo "reset $s"
+done
+sync
+echo "CanOS Public is back to the clean state."
