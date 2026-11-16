@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs in the CanOS live VM (as root): rebuilds Serkan's laptop layout on /dev/vda
+# Runs in the CanOS live VM (as root): rebuilds the multiboot laptop layout on /dev/vda
 # (GPT, ESP p1, placeholders p2-p4 like Windows, Btrfs p5 with @ @home @root @srv @cache @log @tmp)
 # and pacstraps a minimal CachyOS "Serpantinum" with GRUB (\EFI\cachyos, GRUB_DISTRIBUTOR=CanOS).
 exec > /tmp/serp.log 2>&1
@@ -42,12 +42,12 @@ locale-gen
 echo LANG=de_AT.UTF-8 > /etc/locale.conf
 echo KEYMAP=us > /etc/vconsole.conf
 echo serpantinum > /etc/hostname
-useradd -m -G wheel -s /bin/bash serkan
-echo serkan:serkan123 | chpasswd
-echo root:serkan123 | chpasswd
+useradd -m -G wheel -s /bin/bash mainuser
+echo mainuser:canos123 | chpasswd
+echo root:canos123 | chpasswd
 echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/10-wheel
-mkdir -p /home/serkan/.config/canvas && echo '{}' > /home/serkan/.config/canvas/private.json
-chown -R serkan: /home/serkan
+mkdir -p /home/mainuser/.config/canvas && echo '{}' > /home/mainuser/.config/canvas/private.json
+chown -R mainuser: /home/mainuser
 printf '[Match]\nName=en*\n[Network]\nDHCP=yes\n' > /etc/systemd/network/20-wired.network
 systemctl enable systemd-networkd systemd-resolved vmcheck.service
 sed -i -e 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="CanOS"/' -e 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=10/' \
