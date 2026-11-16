@@ -7,7 +7,8 @@ booted through extra entries in the GRUB of the main system.
 | Script | What it does |
 |---|---|
 | `canos-install-subvol` | Unpacks `airootfs.sfs` from the ISO into `@<name>` and runs the same steps as the Calamares installer (canospre, machine-id, fstab, locale, keyboard, initramfs, user, greeter, remove live packages). Never touches partitions, ESP or bootloader. |
-| `canos-grub-entries` | Writes the CanOS entries into `/etc/grub.d/40_custom` (between `### BEGIN/END CanOS`), optionally sets `GRUB_DISTRIBUTOR` (`-r Serpantinum`), runs `grub-mkconfig`. Backups: `*.canos-bak`. `--remove` takes the entries out again. |
+| `canos-grub-entries` | Writes the CanOS entries into `/etc/grub.d/40_custom` (between `### BEGIN/END CanOS`), optionally sets `GRUB_DISTRIBUTOR` (`-r Serpantinum`), runs `grub-mkconfig`. Backups: `/etc/default/*.canos-bak`. `--remove` takes the entries out again. |
+| `canos-secureboot` | For Secure Boot with sbctl: installs sbctl in the CanOS systems, copies the keys, signs the kernels (re-signed by the sbctl hook on updates). Called by `canos-install-subvol` when `/var/lib/sbctl/keys` exists. |
 | `canos-reset-public` | `--snapshot`: read-only snapshots `@canos-public-clean` / `@canos-public-home-clean`. Without option: deletes `@canos-public(-home)` and recreates them from the clean snapshots. Refuses to run inside CanOS Public. |
 
 Typical run (from the main system, ISO file downloaded):

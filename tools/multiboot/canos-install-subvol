@@ -130,6 +130,9 @@ Section "InputClass"
 EndSection
 EOF
 
+step "pacman keyring"
+ch "pacman-key --init >/dev/null 2>&1 && pacman-key --populate >/dev/null 2>&1" || echo "warning: pacman keyring not set up"
+
 step "initramfs"
 ch "mkinitcpio -P >/dev/null 2>&1" || { echo "mkinitcpio failed"; exit 1; }
 
@@ -153,9 +156,13 @@ ch "/usr/local/bin/remove-nvidia >/dev/null 2>&1; /usr/local/bin/removeun >/dev/
 
 step "CanOS tools"
 here=$(dirname "$(readlink -f "$0")")
-for t in canos-install-subvol canos-reset-public canos-grub-entries; do
+for t in canos-install-subvol canos-reset-public canos-grub-entries canos-secureboot; do
     [ -f "$here/$t" ] && install -m755 "$here/$t" "$tgt/usr/local/bin/$t"
 done
 
 sync
+if [ -d /var/lib/sbctl/keys ] && [ -x "$here/canos-secureboot" ]; then
+    step "Secure Boot (sbctl keys found)"
+    "$here/canos-secureboot" -d "$dev" "$name"
+fi
 echo "Done: $sv + $svh. Next: canos-grub-entries (GRUB entry)."

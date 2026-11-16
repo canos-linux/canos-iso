@@ -1,0 +1,33 @@
+#!/bin/bash
+# canos-secureboot - make CanOS subvolumes bootable with Secure Boot (sbctl keys of the main system).
+# Installs sbctl inside each CanOS system, copies the keys and signs its kernels, so the
+# sbctl pacman hook there re-signs them after every kernel update. Needs internet (pacman).
+# Usage: sudo canos-secureboot [-d device] [subvol ...]   (default: canos-privat canos-public)
+set -euo pipefail
+[ "$(id -u)" = 0 ] || { echo "run as root"; exit 1; }
+dev=""
+[ "${1:-}" = "-d" ] && { dev=$2; shift 2; }
+[ -n "$dev" ] || dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
+[ -d /var/lib/sbctl/keys ] || { echo "no sbctl keys in /var/lib/sbctl - nothing to do"; exit 0; }
+names=("$@"); [ ${#names[@]} -gt 0 ] || names=(canos-privat canos-public)
+
+for n in "${names[@]}"; do
+    t=$(mktemp -d /tmp/canos-sb.XXXX)
+    mount -o "subvol=/@$n" "$dev" "$t"
+    echo "==> $n"
+    mkdir -p "$t/var/lib/sbctl"
+    cp -a /var/lib/sbctl/keys /var/lib/sbctl/GUID "$t/var/lib/sbctl/"
+    arch-chroot "$t" /bin/bash -c '
+        set -e
+        [ -f /etc/pacman.d/gnupg/pubring.gpg ] || [ -f /etc/pacman.d/gnupg/pubring.kbx ] || { pacman-key --init >/dev/null 2>&1; pacman-key --populate >/dev/null 2>&1; }
+        pacman -Q sbctl >/dev/null 2>&1 || pacman -Sy --noconfirm --needed sbctl >/dev/null
+        for k in /boot/vmlinuz-*; do sbctl sign -s "$k" || true; done
+        # make sure the sbctl pacman hook re-signs them after kernel updates
+        { echo "{"; first=1; for k in /boot/vmlinuz-*; do
+            [ $first = 1 ] || echo ","; first=0
+            printf "  \"%s\": {\"file\": \"%s\", \"output_file\": \"%s\"}" "$k" "$k" "$k"; done; echo; echo "}"; } > /var/lib/sbctl/files.json
+        gpgconf --homedir /etc/pacman.d/gnupg --kill all 2>/dev/null || true'
+    sleep 1
+    umount "$t" 2>/dev/null || umount -l "$t"; rmdir "$t"
+done
+echo "Done. If CanOS Public is signed now, refresh its clean snapshot: canos-reset-public --snapshot"
