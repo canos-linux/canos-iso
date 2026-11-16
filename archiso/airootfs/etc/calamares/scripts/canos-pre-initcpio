@@ -9,4 +9,7 @@ for dir in /usr/lib/modules/*/; do
     install -Dm644 "$dir/vmlinuz" "/boot/vmlinuz-$pkgbase"
     sed "s|%PKGBASE%|$pkgbase|g" /usr/share/mkinitcpio/hook.preset > "/etc/mkinitcpio.d/$pkgbase.preset"
 done
+
+# GRUB menu entry name (grubcfg from CachyOS only runs with its bootloader chooser)
+sed -i -e "s/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=\"CanOS\"/" -e "s/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=5/" /etc/default/grub
 exit 0
