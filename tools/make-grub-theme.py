@@ -32,7 +32,7 @@ message-color: "#8a8494"
 terminal-font: "Canvas Sans Regular 16"
 
 + label {
-    top = 420
+    top = 39%
     left = 0
     width = 100%
     align = "center"
@@ -43,9 +43,9 @@ terminal-font: "Canvas Sans Regular 16"
 
 + boot_menu {
     left = 50%-300
-    top = 500
+    top = 46%
     width = 600
-    height = 300
+    height = 44%
     item_font = "Canvas Sans Regular 20"
     selected_item_font = "Canvas Sans Regular 20"
     item_color = "#8a8494"
@@ -61,7 +61,7 @@ terminal-font: "Canvas Sans Regular 16"
 
 + label {
     id = "__timeout__"
-    top = 100%-80
+    top = 100%-50
     left = 0
     width = 100%
     align = "center"
