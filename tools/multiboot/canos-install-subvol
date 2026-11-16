@@ -121,6 +121,7 @@ ch "locale-gen >/dev/null"
 echo "LANG=$loc" > "$tgt/etc/locale.conf"
 ln -sf "/usr/share/zoneinfo/$tz" "$tgt/etc/localtime"
 echo "KEYMAP=$keymap" > "$tgt/etc/vconsole.conf"
+grep -q LOCAL /etc/adjtime 2>/dev/null && cp /etc/adjtime "$tgt/etc/adjtime"   # dual boot with Windows: RTC in local time
 mkdir -p "$tgt/etc/X11/xorg.conf.d"
 cat > "$tgt/etc/X11/xorg.conf.d/00-keyboard.conf" <<EOF
 Section "InputClass"
