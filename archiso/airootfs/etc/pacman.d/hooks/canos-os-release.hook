@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = *
+
+[Action]
+Description = Keeping CanOS os-release...
+When = PostTransaction
+Exec = /bin/sh -c 'cmp -s /usr/share/canos/os-release /etc/os-release || { rm -f /etc/os-release; install -m644 /usr/share/canos/os-release /etc/os-release; }'
