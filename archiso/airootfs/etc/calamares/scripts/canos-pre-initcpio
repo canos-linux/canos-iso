@@ -12,4 +12,7 @@ done
 
 # GRUB menu entry name (grubcfg from CachyOS only runs with its bootloader chooser)
 sed -i -e "s/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=\"CanOS\"/" -e "s/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=5/" /etc/default/grub
+# CanOS GRUB theme
+sed -i -e "/^#\?GRUB_THEME=/d" /etc/default/grub
+echo 'GRUB_THEME="/usr/share/grub/themes/canos/theme.txt"' >> /etc/default/grub
 exit 0

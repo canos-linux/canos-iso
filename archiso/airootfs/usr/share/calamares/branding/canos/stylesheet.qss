@@ -117,3 +117,18 @@ QPushButton#aboutButton { qproperty-icon: url(:/data/images/release.svg); }
 #licenseItem {  }
 #licenseItemFullText {  }
 */
+
+/* CanOS: progress bar in theme colours */
+QProgressBar {
+    background-color: #241f2b;
+    border: none;
+    border-radius: 6px;
+    min-height: 12px;
+    max-height: 12px;
+    color: transparent;
+}
+
+QProgressBar::chunk {
+    background-color: #cdbdff;
+    border-radius: 6px;
+}
