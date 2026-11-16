@@ -1,0 +1,18 @@
+# Built by ../build-repo.sh (pkgver comes from VERSION in the Canvas repo)
+pkgname=canvas
+pkgver=1.0
+pkgrel=1
+pkgdesc="Canvas – the desktop of CanOS (Quickshell shell for Hyprland)"
+arch=(any)
+url="https://github.com/tschaki11/canvas"
+license=(GPL-3.0-only)
+depends=(quickshell hyprland)
+optdepends=('hyprsunset: night light' 'udiskie: automount USB drives' 'pacman-contrib: update check')
+
+package() {
+  local src="${CANVAS_SRC:-$HOME/CanOS/canvas}"
+  install -d "$pkgdir/usr/share/canvas" "$pkgdir/usr/bin"
+  git -C "$src" archive HEAD | tar -x -C "$pkgdir/usr/share/canvas"
+  chmod 755 "$pkgdir/usr/share/canvas/bin/"* "$pkgdir/usr/share/canvas/greeter/install-greeter"
+  ln -s /usr/share/canvas/bin/canvas "$pkgdir/usr/bin/canvas"
+}

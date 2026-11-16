@@ -9,6 +9,7 @@ pause() { [ -t 0 ] && read -rp "$(t 'Press Enter to close' 'Enter zum Schließen
 
 say "$(t 'CanOS Update' 'CanOS-Update')"
 kernel_before=$(uname -r)
+canvas_before=$(pacman -Q canvas 2>/dev/null)
 if command -v snapper >/dev/null && sudo snapper list-configs 2>/dev/null | grep -q '^root '; then
     say "$(t 'Creating snapshot' 'Snapshot wird erstellt')"
     sudo snapper -c root create -c important -d "canos-update $(date +%F)" || true
@@ -25,6 +26,7 @@ if command -v flatpak >/dev/null && [ -n "$(flatpak list --app 2>/dev/null)" ]; 
 fi
 msg="$(t 'Everything is up to date' 'Alles ist aktuell')"
 [ -d "/usr/lib/modules/$kernel_before" ] || msg="$(t 'Restart to use the new kernel' 'Neu starten, um den neuen Kernel zu verwenden')"
+[ -n "$canvas_before" ] && [ "$(pacman -Q canvas 2>/dev/null)" != "$canvas_before" ] && command -v canvas >/dev/null && { say "$(t 'Restarting Canvas' 'Canvas wird neu gestartet')"; canvas restart >/dev/null 2>&1; sleep 3; }
 command -v canvas >/dev/null && canvas notify "CanOS" "$(t 'System updated' 'System aktualisiert')" "$msg" 2>/dev/null
 say "$msg"
 pause

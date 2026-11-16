@@ -221,3 +221,5 @@ pacman-contrib
 imagemagick
 nvidia-prime
 mesa-utils
+canvas
+canos-tools
