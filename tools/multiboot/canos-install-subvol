@@ -149,7 +149,7 @@ echo "$host" > "$tgt/etc/hostname"
 printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s\n' "$host" > "$tgt/etc/hosts"
 
 step "services, greeter"
-ch "systemctl enable NetworkManager >/dev/null 2>&1"
+ch "for u in NetworkManager bluetooth power-profiles-daemon cups; do systemctl enable \$u >/dev/null 2>&1; done; true"
 ch "/usr/share/canvas/greeter/install-greeter"
 
 step "remove live packages"
