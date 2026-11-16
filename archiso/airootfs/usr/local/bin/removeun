@@ -40,10 +40,14 @@ local _packages_to_remove=(
   mkinitcpio-archiso
 )
 
-  local _check_nvidia_card="$(chwd --is_nvidia_card | grep -q 'NVIDIA card found!'; echo $?)"
+  # chwd >= 1.2x has no --is_nvidia_card any more: look for an NVIDIA display controller in sysfs
+  local _check_nvidia_card=1 _d
+  for _d in /sys/bus/pci/devices/*; do
+    [[ "$(cat "$_d/vendor" 2>/dev/null)" == 0x10de && "$(cat "$_d/class" 2>/dev/null)" == 0x03* ]] && _check_nvidia_card=0
+  done
   if [[ "${_check_nvidia_card}" -ne 0 ]]; then
     echo "No NVIDIA card detected. Removing nvidia drivers"
-    _packages_to_remove+=(linux-cachyos-lts-nvidia-open nvidia-utils egl-wayland)
+    _packages_to_remove+=(nvidia-prime linux-cachyos-lts-nvidia-open linux-cachyos-nvidia-open nvidia-utils egl-wayland)
   fi
 
   local xx
