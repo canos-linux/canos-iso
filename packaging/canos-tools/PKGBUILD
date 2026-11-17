@@ -1,9 +1,9 @@
 pkgname=canos-tools
 pkgver=1.0.1
-pkgrel=1
+pkgrel=2
 pkgdesc="CanOS system files: canos-update, os-release, default apps"
 arch=(any)
-url="https://github.com/tschaki11/canos-iso"
+url="https://github.com/canos-linux/canos-iso"
 license=(GPL-3.0-only)
 depends=(pacman-contrib)
 backup=(etc/xdg/mimeapps.list)

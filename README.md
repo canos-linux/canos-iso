@@ -1,8 +1,8 @@
 # CanOS
 
-**Yes, I CanOS.** – A fast, beautiful Linux system with its own desktop, [Canvas](https://github.com/tschaki11/canvas).
+**Yes, I CanOS.** – A fast, beautiful Linux system with its own desktop, [Canvas](https://github.com/canos-linux/canvas).
 
-Website: **https://tschaki11.github.io/canos/**
+Website: **https://canos-linux.github.io/**
 
 CanOS is based on [CachyOS](https://cachyos.org) and [Arch Linux](https://archlinux.org). This repository builds the CanOS live ISO with an offline Calamares installer.
 

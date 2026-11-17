@@ -1,7 +1,7 @@
 #!/bin/bash
 # build-repo.sh [local|publish] - build the CanOS packages (canvas, canos-tools)
 #   local   - put them into the ISO build repo ~/CanOS/pkg/repo (canos-local)
-#   publish - upload them to the online repo [canos] (GitHub release tschaki11/canos-repo, tag x86_64)
+#   publish - upload them to the online repo [canos] (GitHub release canos-linux/canos-repo, tag x86_64)
 set -e
 here="$(cd "$(dirname "$0")" && pwd)"
 canvas="${CANVAS_SRC:-$HOME/CanOS/canvas}"
@@ -27,10 +27,10 @@ publish)
     rm -f "$pub"/canos.db* "$pub"/canos.files*
     repo-add -q "$pub/canos.db.tar.gz" "$pub"/*.pkg.tar.zst
     rm -f "$pub/canos.db" "$pub/canos.files"; cp "$pub/canos.db.tar.gz" "$pub/canos.db"; cp "$pub/canos.files.tar.gz" "$pub/canos.files"
-    gh release view x86_64 -R tschaki11/canos-repo >/dev/null 2>&1 || gh release create x86_64 -R tschaki11/canos-repo --title "CanOS package repository" --notes "pacman repository [canos]. Server = https://github.com/tschaki11/canos-repo/releases/download/x86_64"
-    for a in $(gh release view x86_64 -R tschaki11/canos-repo --json assets --jq '.assets[].name'); do
-        [ -e "$pub/$a" ] || gh release delete-asset x86_64 "$a" -R tschaki11/canos-repo -y
+    gh release view x86_64 -R canos-linux/canos-repo >/dev/null 2>&1 || gh release create x86_64 -R canos-linux/canos-repo --title "CanOS package repository" --notes "pacman repository [canos]. Server = https://github.com/canos-linux/canos-repo/releases/download/x86_64"
+    for a in $(gh release view x86_64 -R canos-linux/canos-repo --json assets --jq '.assets[].name'); do
+        [ -e "$pub/$a" ] || gh release delete-asset x86_64 "$a" -R canos-linux/canos-repo -y
     done
-    gh release upload x86_64 -R tschaki11/canos-repo --clobber "$pub/canos.db" "$pub/canos.files" "$pub"/*.pkg.tar.zst
+    gh release upload x86_64 -R canos-linux/canos-repo --clobber "$pub/canos.db" "$pub/canos.files" "$pub"/*.pkg.tar.zst
     echo "published" ;;
 esac

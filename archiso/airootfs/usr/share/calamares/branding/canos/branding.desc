@@ -15,7 +15,7 @@ strings:
     versionedName:       CanOS
     shortVersionedName:  CanOS
     bootloaderEntryName: CanOS
-    productUrl:          https://github.com/tschaki11/canvas
+    productUrl:          https://github.com/canos-linux/canvas
 images:
     productLogo:         "logo.png"
     productIcon:         "icon.png"
