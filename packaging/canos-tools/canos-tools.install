@@ -1,0 +1,17 @@
+post_install() {
+    systemd-tmpfiles --create /usr/lib/tmpfiles.d/canos.conf 2>/dev/null
+    # CanOS boot menu order (10_canos, 30_canos_os-prober, 42_canos_advanced)
+    chmod -x /etc/grub.d/10_linux /etc/grub.d/30_os-prober /etc/grub.d/30_uefi-firmware /etc/grub.d/31_efi_bootnext 2>/dev/null
+    # newer GRUB theme for systems installed from an older ISO
+    if [ -d /usr/share/grub/themes/canos ]; then
+        rm -rf /usr/share/grub/themes/canos
+        cp -r /usr/share/canos/grub-theme /usr/share/grub/themes/canos
+    fi
+    if [ -f /boot/grub/grub.cfg ] && grep -q 'themes/canos' /boot/grub/grub.cfg && command -v grub-mkconfig >/dev/null; then
+        grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 || true
+    fi
+}
+
+post_upgrade() {
+    post_install
+}

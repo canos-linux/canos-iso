@@ -1,0 +1,10 @@
+[Unit]
+Description=CanOS: let the installer find the system image when the ISO was copied to RAM
+ConditionPathExists=/run/archiso/copytoram/airootfs.sfs
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 't=/run/archiso/bootmnt/arch/x86_64; [ -e "$$t/airootfs.sfs" ] || { mkdir -p "$$t" && ln -sf /run/archiso/copytoram/airootfs.sfs "$$t/airootfs.sfs"; }'
+
+[Install]
+WantedBy=multi-user.target

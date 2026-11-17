@@ -1,14 +1,16 @@
 pkgname=canos-tools
-pkgver=1.0.1
-pkgrel=2
-pkgdesc="CanOS system files: canos-update, os-release, default apps"
+pkgver=1.0.2
+pkgrel=1
+pkgdesc="CanOS system files: canos-update, canos-fetch, os-release, boot menu and animation, default apps"
 arch=(any)
 url="https://github.com/canos-linux/canos-iso"
 license=(GPL-3.0-only)
-depends=(pacman-contrib)
+depends=(pacman-contrib fastfetch)
+optdepends=('plymouth: boot animation' 'imagemagick: canos-fetch logo in the theme color')
+install=canos-tools.install
 backup=(etc/xdg/mimeapps.list)
-source=(canos-update os-release logo.txt canos-os-release.hook mimeapps.list)
-sha256sums=(SKIP SKIP SKIP SKIP SKIP)
+source=(canos-update canos-fetch os-release logo.txt logo.png canos-os-release.hook canos-grub.hook canos.tmpfiles mimeapps.list)
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP)
 
 package() {
   install -Dm755 canos-update "$pkgdir/usr/bin/canos-update"
@@ -16,4 +18,14 @@ package() {
   install -Dm644 logo.txt "$pkgdir/usr/share/canos/logo.txt"
   install -Dm644 canos-os-release.hook "$pkgdir/usr/share/libalpm/hooks/canos-os-release.hook"
   install -Dm644 mimeapps.list "$pkgdir/etc/xdg/mimeapps.list"
+  install -Dm755 canos-fetch "$pkgdir/usr/bin/canos-fetch"
+  install -Dm644 logo.png "$pkgdir/usr/share/canos/logo.png"
+  install -Dm644 canos-grub.hook "$pkgdir/usr/share/libalpm/hooks/canos-grub.hook"
+  install -Dm644 canos.tmpfiles "$pkgdir/usr/lib/tmpfiles.d/canos.conf"
+  local here="${startdir:-$PWD}"
+  for f in "$here"/grub.d/*; do install -Dm755 "$f" "$pkgdir/etc/grub.d/$(basename "$f")"; done
+  install -d "$pkgdir/usr/share/plymouth/themes/canos" "$pkgdir/usr/share/canos/grub-theme"
+  cp -r "$here"/plymouth/. "$pkgdir/usr/share/plymouth/themes/canos/"
+  cp -r "$here"/grub-theme/. "$pkgdir/usr/share/canos/grub-theme/"
+  chmod -R u=rwX,go=rX "$pkgdir/usr/share/plymouth/themes/canos" "$pkgdir/usr/share/canos/grub-theme"
 }

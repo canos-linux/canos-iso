@@ -1,0 +1,115 @@
+#!/bin/bash
+# canos-fetch - CanOS system info (fastfetch), colors follow the Canvas theme
+#   canos-fetch          compact (shown when a terminal opens)
+#   canos-fetch --full   everything
+set -u
+full=0
+case "${1:-}" in
+    -f|--full) full=1 ;;
+    -h|--help) echo "canos-fetch [--full]"; exit 0 ;;
+esac
+command -v fastfetch >/dev/null || { echo "fastfetch is missing"; exit 1; }
+
+# accent color of the active Canvas theme
+theme=$(cat "$HOME/.local/state/canvas/theme" 2>/dev/null)
+theme=${theme:-canvas}
+hex=""
+for d in "$HOME/.local/share/canvas/themes/$theme" "/usr/share/canvas/themes/$theme"; do
+    [ -f "$d/theme.json" ] && hex=$(sed -n 's/.*"color": *"#\([0-9a-fA-F]\{6\}\)".*/\1/p' "$d/theme.json" | head -1) && [ -n "$hex" ] && break
+done
+hex=${hex:-b9a4ff}
+acc="38;2;$((16#${hex:0:2}));$((16#${hex:2:2}));$((16#${hex:4:2}))"
+dim="38;2;138;132;148"
+
+de=0; case "${LANG:-}" in de*) de=1 ;; esac
+t() { [ $de = 1 ] && printf '%s' "$2" || printf '%s' "$1"; }
+
+# logo: image in kitty (tinted with the theme color), colored text elsewhere
+logo=""
+if [ -t 1 ] && { [ -n "${KITTY_WINDOW_ID:-}" ] || [ "${TERM:-}" = "xterm-kitty" ]; }; then
+    src=/usr/share/canos/logo.png
+    cache="${XDG_CACHE_HOME:-$HOME/.cache}/canos-fetch"
+    img="$cache/logo-$hex.png"
+    if [ -f "$src" ] && { [ -f "$img" ] || { mkdir -p "$cache" && command -v magick >/dev/null && magick "$src" -fill "#$hex" -colorize 100 "$img" 2>/dev/null; }; }; then
+        if [ $full = 1 ]; then w=26 h=12; else w=16 h=7; fi
+        logo="\"type\": \"kitty-direct\", \"source\": \"$img\", \"width\": $w, \"height\": $h, \"padding\": { \"top\": 1, \"left\": 2, \"right\": 3 }"
+    fi
+fi
+[ -n "$logo" ] || logo="\"type\": \"file\", \"source\": \"/usr/share/canos/logo.txt\", \"color\": { \"1\": \"$acc\" }, \"padding\": { \"top\": 1, \"left\": 2, \"right\": 3 }"
+
+sec() { printf '{ "type": "custom", "format": "\\u001b[%sm╭─ %s", "outputColor": "" },\n' "$acc" "$1"; }
+foot() { printf '{ "type": "custom", "format": "\\u001b[%sm╰─", "outputColor": "" },\n' "$acc"; }
+k() { printf '│ %s' "$1"; }
+
+cfg=$(mktemp --suffix=.jsonc)
+trap 'rm -f "$cfg"' EXIT
+{
+cat <<EOF
+{
+  "logo": { $logo },
+  "display": {
+    "separator": "  ",
+    "color": { "keys": "$acc", "separator": "$dim" },
+    "key": { "width": 13 },
+    "bar": { "char": { "elapsed": "■", "total": "·" }, "width": 12, "border": { "left": "", "right": "" } },
+    "percent": { "type": ["num", "bar"], "color": { "green": "$acc", "yellow": "33", "red": "31" } },
+    "size": { "binaryPrefix": "jedec" }
+  },
+  "modules": [
+EOF
+if [ $full = 1 ]; then
+    sec "$(t System System)"
+    cat <<EOF
+    { "type": "command", "key": "$(k CanOS)", "text": ". /etc/os-release; echo \"\$VERSION_ID\"" },
+    { "type": "command", "key": "$(k Canvas)", "text": "cat /usr/share/canvas/VERSION 2>/dev/null || echo -" },
+    { "type": "kernel", "key": "$(k Kernel)" },
+    { "type": "uptime", "key": "$(k Uptime)" },
+    { "type": "packages", "key": "$(k "$(t Packages Pakete)")" },
+    { "type": "command", "key": "$(k Updates)", "text": "n=\$(timeout 20 checkupdates 2>/dev/null | wc -l); if [ \"\$n\" = 0 ]; then echo '$(t 'up to date' 'alles aktuell')'; else echo \"\$n $(t available verfügbar)\"; fi" },
+EOF
+    foot
+    sec "Desktop"
+    cat <<EOF
+    { "type": "wm", "key": "$(k Desktop)", "format": "Canvas · {pretty-name} {version}" },
+    { "type": "command", "key": "$(k Theme)", "text": "echo '${theme^}'" },
+    { "type": "command", "key": "$(k "$(t Font Schrift)")", "text": "echo 'Google Sans Flex'" },
+    { "type": "terminal", "key": "$(k Terminal)" },
+    { "type": "shell", "key": "$(k Shell)" },
+EOF
+    foot
+    sec "Hardware"
+    cat <<EOF
+    { "type": "cpu", "key": "$(k CPU)", "format": "{name} ({cores-logical})" },
+    { "type": "gpu", "key": "$(k GPU)", "format": "{name} · {driver}" },
+    { "type": "memory", "key": "$(k RAM)" },
+    { "type": "disk", "key": "$(k "$(t Storage Speicher)")", "folders": "/", "format": "{size-used} / {size-total} {size-percentage-bar}" },
+    { "type": "battery", "key": "$(k "$(t Battery Akku)")" },
+    { "type": "display", "key": "$(k "$(t Display Monitor)")", "format": "{width}×{height} @ {refresh-rate} Hz ({name})" },
+EOF
+    foot
+    sec "$(t Network Netzwerk)"
+    cat <<EOF
+    { "type": "wifi", "key": "$(k WLAN)", "format": "{ssid}" },
+    { "type": "localip", "key": "$(k IP)", "showIpv6": false, "format": "{ipv4}" },
+EOF
+    foot
+else
+    sec "CanOS"
+    cat <<EOF
+    { "type": "command", "key": "$(k System)", "text": ". /etc/os-release; echo \"CanOS \$VERSION_ID · Canvas \$(cat /usr/share/canvas/VERSION 2>/dev/null)\"" },
+    { "type": "kernel", "key": "$(k Kernel)" },
+    { "type": "uptime", "key": "$(k Uptime)" },
+    { "type": "cpu", "key": "$(k CPU)", "format": "{name}" },
+    { "type": "gpu", "key": "$(k GPU)", "format": "{name}" },
+    { "type": "memory", "key": "$(k RAM)" },
+EOF
+    foot
+fi
+cat <<EOF
+    "break",
+    { "type": "colors", "symbol": "circle", "paddingLeft": 2 }
+  ]
+}
+EOF
+} > "$cfg"
+fastfetch --config "$cfg"

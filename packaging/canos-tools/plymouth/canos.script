@@ -1,0 +1,68 @@
+# CanOS Plymouth theme: the ring "C" draws itself, then turns slowly (boot)
+# shutdown / reboot: the finished logo turns (Canvas fades into the same logo before)
+Window.SetBackgroundTopColor(0.059, 0.051, 0.071);
+Window.SetBackgroundBottomColor(0.059, 0.051, 0.071);
+
+frames = 30;
+for (i = 0; i < frames; i++)
+    ring[i] = Image("ring-" + i + ".png");
+logo = Image("logo.png");
+
+sprite = Sprite();
+cx = Window.GetX() + Window.GetWidth() / 2;
+cy = Window.GetY() + Window.GetHeight() / 2;
+sprite.SetX(cx - logo.GetWidth() / 2);
+sprite.SetY(cy - logo.GetHeight() / 2);
+sprite.SetZ(10);
+
+mode = Plymouth.GetMode();
+if (mode == "shutdown" || mode == "reboot")
+    tick = frames;
+else
+    tick = 0;
+angle = 0;
+
+fun refresh() {
+    if (tick < frames) {
+        sprite.SetImage(ring[tick]);
+    } else {
+        # slow turn after the logo is complete
+        angle = angle + 0.035;
+        rotated = logo.Rotate(angle);
+        sprite.SetImage(rotated);
+        sprite.SetX(cx - rotated.GetWidth() / 2);
+        sprite.SetY(cy - rotated.GetHeight() / 2);
+    }
+    tick++;
+}
+Plymouth.SetRefreshFunction(refresh);
+
+# password prompt (encrypted disk) in the same style
+entry = Image("entry.png");
+bullet = Image("bullet.png");
+entry_sprite = Sprite();
+bullets = [];
+
+fun display_password(prompt, count) {
+    entry_sprite.SetImage(entry);
+    entry_sprite.SetX(cx - entry.GetWidth() / 2);
+    entry_sprite.SetY(cy + logo.GetHeight() / 2 + 40);
+    entry_sprite.SetZ(20);
+    entry_sprite.SetOpacity(1);
+    for (i = 0; i < 24; i++) {
+        if (!bullets[i]) bullets[i] = Sprite(bullet);
+        bullets[i].SetX(cx - entry.GetWidth() / 2 + 26 + i * 18);
+        bullets[i].SetY(cy + logo.GetHeight() / 2 + 40 + entry.GetHeight() / 2 - bullet.GetHeight() / 2);
+        bullets[i].SetZ(21);
+        if (i < count) bullets[i].SetOpacity(1); else bullets[i].SetOpacity(0);
+    }
+}
+
+fun display_normal() {
+    entry_sprite.SetOpacity(0);
+    for (i = 0; i < 24; i++)
+        if (bullets[i]) bullets[i].SetOpacity(0);
+}
+
+Plymouth.SetDisplayPasswordFunction(display_password);
+Plymouth.SetDisplayNormalFunction(display_normal);

@@ -5,7 +5,7 @@ iso_name="canos"
 iso_label="CANOS_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
 iso_publisher="CanOS"
 iso_application="CanOS Live"
-iso_version="1.0.1"
+iso_version="1.0.2"
 install_dir="arch"
 buildmodes=('iso')
 ## GRUB
@@ -30,6 +30,7 @@ file_permissions=(
   ["/usr/local/bin/calamares-online.sh"]="0:0:755"
   ["/usr/local/bin/remove-nvidia"]="0:0:755"
   ["/etc/calamares/scripts/canos-pre-initcpio"]="0:0:755"
+  ["/etc/calamares/scripts/canos-post"]="0:0:755"
   ["/usr/local/bin/removeun"]="0:0:755"
   ["/usr/local/bin/removeun-online"]="0:0:755"
   ["/usr/local/bin/prepare-live-desktop.sh"]="0:0:755"

@@ -2,9 +2,9 @@
 vt = 1
 
 [default_session]
-command = "cage -s -- env QT_WAYLAND_DISABLE_WINDOWDECORATION=1 XDG_CACHE_HOME=/tmp/canos-greeter qs -p /usr/share/canvas/greeter/shell.qml"
+command = "/usr/share/canvas/greeter/start-greeter"
 user = "greeter"
 
 [initial_session]
-command = "start-hyprland"
+command = "/usr/share/canvas/greeter/start-session"
 user = "liveuser"

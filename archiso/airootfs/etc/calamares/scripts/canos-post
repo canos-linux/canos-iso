@@ -1,0 +1,41 @@
+#!/bin/bash
+# Runs inside the installed system after the bootloader (Calamares shellprocess@canos).
+
+# no 30 s wait for an internet clock at boot
+systemctl disable systemd-time-wait-sync.service 2>/dev/null
+rm -f /etc/systemd/system/sysinit.target.wants/systemd-time-wait-sync.service
+rm -rf /etc/systemd/system/systemd-time-wait-sync.service.d
+# ZFS units pull in the slow systemd-udev-settle.service: only keep them on ZFS installs
+if [ "$(findmnt -no FSTYPE /)" != "zfs" ]; then
+    systemctl disable zfs-import-cache.service zfs-import-scan.service zfs-mount.service zfs-share.service zfs-zed.service zfs-import.target zfs-volumes.target zfs.target 2>/dev/null
+fi
+
+# both UI languages of Canvas need their locale
+sed -i -E 's/^#\s*(en_US\.UTF-8 UTF-8|de_AT\.UTF-8 UTF-8|de_DE\.UTF-8 UTF-8)/\1/' /etc/locale.gen
+locale-gen >/dev/null 2>&1
+
+# CanOS first in the UEFI boot order (some firmwares keep Windows Boot Manager first)
+if [ -d /sys/firmware/efi ] && command -v efibootmgr >/dev/null; then
+    out=$(efibootmgr 2>/dev/null)
+    id=$(printf '%s\n' "$out" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\*\{0,1\} canos\b.*/\1/Ip' | head -1)
+    order=$(printf '%s\n' "$out" | sed -n 's/^BootOrder: //p')
+    if [ -n "$id" ]; then
+        rest=$(printf '%s' "$order" | tr ',' '\n' | grep -vix "$id" | paste -sd, -)
+        efibootmgr -o "$id${rest:+,$rest}" >/dev/null 2>&1
+    fi
+fi
+
+# only CanOS on this PC: boot straight away, menu with Esc
+if [ -z "$(os-prober 2>/dev/null)" ]; then
+    sed -i -e '/^#\?GRUB_TIMEOUT_STYLE=/d' -e '/^#\?GRUB_TIMEOUT=/d' /etc/default/grub
+    printf 'GRUB_TIMEOUT_STYLE="hidden"\nGRUB_TIMEOUT="2"\n' >> /etc/default/grub
+    grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1
+fi
+
+# Plymouth: rebuild the initramfs if the installer left the hook out
+if command -v plymouth >/dev/null && ! grep -q '^HOOKS=.*plymouth' /etc/mkinitcpio.conf; then
+    sed -i -E 's/^(HOOKS=\(.*)(\bkms\b|\bmodconf\b)/\1\2 plymouth/' /etc/mkinitcpio.conf
+    grep -q '^HOOKS=.*plymouth' /etc/mkinitcpio.conf && mkinitcpio -P >/dev/null 2>&1
+fi
+systemctl disable canos-copytoram.service 2>/dev/null; rm -f /etc/systemd/system/canos-copytoram.service
+exit 0

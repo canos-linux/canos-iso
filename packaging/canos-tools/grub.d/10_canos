@@ -1,0 +1,4 @@
+#!/bin/sh
+# CanOS boot menu: main entry from 10_linux ("CanOS"); its "Advanced options" submenu goes to the end (42_canos_advanced)
+[ -f /etc/grub.d/10_linux ] || exit 0
+sh /etc/grub.d/10_linux | awk '/^submenu /{exit} {print}' | sed -E -e "/^\s*menuentry /s/'CanOS Linux'/'CanOS'/" -e "/^\s*echo\s/d"

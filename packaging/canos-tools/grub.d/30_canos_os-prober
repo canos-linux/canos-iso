@@ -1,0 +1,4 @@
+#!/bin/sh
+# Other systems (os-prober) with short names: "Windows" instead of "Windows Boot Manager (on /dev/...)"
+[ -f /etc/grub.d/30_os-prober ] || exit 0
+sh /etc/grub.d/30_os-prober | sed -E "s/^(\s*menuentry ')Windows Boot Manager \(on [^']*\)'/\1Windows'/; s/^(\s*menuentry '[^']*) \(on \/dev\/[^']*\)'/\1'/"

@@ -1,0 +1,4 @@
+#!/bin/sh
+# "UEFI Firmware Settings" with an icon (class efi)
+[ -f /etc/grub.d/30_uefi-firmware ] || exit 0
+sh /etc/grub.d/30_uefi-firmware | sed -E "s/^(\s*menuentry 'UEFI Firmware Settings')/\1 --class efi/"

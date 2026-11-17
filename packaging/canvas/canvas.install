@@ -1,0 +1,17 @@
+# Canvas 1.0.3+: the login screen runs on Hyprland (cage stretched it over all displays)
+_greeter() {
+    local c=/etc/greetd/config.toml
+    [ -f "$c" ] || return 0
+    if grep -q '^command = "cage .*canvas/greeter/shell.qml"' "$c"; then
+        sed -i 's|^command = "cage .*canvas/greeter/shell.qml"|command = "/usr/share/canvas/greeter/start-greeter"|' "$c"
+        echo "  -> login screen now uses Hyprland (active after the next restart)"
+    fi
+}
+
+post_install() {
+    _greeter
+}
+
+post_upgrade() {
+    _greeter
+}

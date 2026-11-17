@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=CanOS
+Description=CanOS boot and shutdown animation (ring "C")
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/canos
+ScriptFile=/usr/share/plymouth/themes/canos/canos.script

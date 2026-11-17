@@ -1,46 +1,64 @@
-# CanOS GRUB theme
+# CanOS GRUB theme (tools/make-grub-theme.py)
 desktop-image: "background.png"
 desktop-color: "#0f0d12"
 title-text: ""
 message-font: "Canvas Sans Regular 16"
 message-color: "#8a8494"
 terminal-font: "Canvas Sans Regular 16"
+terminal-box: "terminal_box_*.png"
+terminal-left: "0"
+terminal-top: "100%-2"
+terminal-width: "2"
+terminal-height: "2"
+terminal-border: "0"
 
 + label {
-    top = 39%
+    top = 29%
     left = 0
     width = 100%
     align = "center"
     text = "CanOS"
     font = "Canvas Sans Regular 28"
-    color = "#cdbdff"
+    color = "#ece7f2"
 }
 
 + boot_menu {
-    left = 50%-300
-    top = 46%
-    width = 600
-    height = 44%
+    left = 50%-310
+    top = 38%
+    width = 620
+    height = 48%
     item_font = "Canvas Sans Regular 20"
     selected_item_font = "Canvas Sans Regular 20"
     item_color = "#8a8494"
-    selected_item_color = "#cdbdff"
+    selected_item_color = "#ece7f2"
     selected_item_pixmap_style = "select_*.png"
     item_height = 40
-    item_padding = 16
-    item_spacing = 6
-    icon_width = 0
-    icon_height = 0
+    item_padding = 12
+    item_spacing = 26
+    icon_width = 28
+    icon_height = 28
+    item_icon_space = 18
     scrollbar = false
+}
+
++ progress_bar {
+    id = "__timeout__"
+    left = 50%-150
+    top = 100%-70
+    width = 300
+    height = 4
+    show_text = false
+    bar_style = "barbg_*.png"
+    highlight_style = "bar_*.png"
 }
 
 + label {
     id = "__timeout__"
-    top = 100%-50
+    top = 100%-56
     left = 0
     width = 100%
     align = "center"
     font = "Canvas Sans Regular 16"
-    color = "#8a8494"
-    text = "Booting in %d s"
+    color = "#6f6879"
+    text = "%d"
 }

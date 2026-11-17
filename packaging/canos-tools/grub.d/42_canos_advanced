@@ -1,0 +1,9 @@
+#!/bin/sh
+# "Advanced options for CanOS" (LTS kernel, fallback initramfs) at the end of the menu
+[ -f /etc/grub.d/10_linux ] || exit 0
+sh /etc/grub.d/10_linux | awk '/^submenu /{p=1} p{print}' | sed -E \
+    -e "/^\s*(menuentry|submenu) /s/CanOS Linux, with Linux linux-cachyos-lts/CanOS (LTS kernel)/" \
+    -e "/^\s*(menuentry|submenu) /s/CanOS Linux, with Linux linux-cachyos/CanOS/" \
+    -e "/^\s*(menuentry|submenu) /s/CanOS Linux, with Linux ([^' ]*)/CanOS (\1)/" \
+    -e "/^\s*(menuentry|submenu) /s/CanOS Linux/CanOS/" \
+    -e "/^\s*echo\s/d"

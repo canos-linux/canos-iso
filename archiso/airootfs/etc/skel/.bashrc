@@ -42,4 +42,5 @@ shopt -s expand_aliases
 # Enable history appending instead of overwriting.  #139609
 shopt -s histappend
 
-#neofetch
+# CanOS: system info when a terminal opens (canos-fetch --full shows everything)
+[ -z "${CANOS_NO_FETCH:-}" ] && command -v canos-fetch >/dev/null && canos-fetch
