@@ -6,6 +6,8 @@ _grub_set() {
 }
 
 _canos_upgrade() {
+    # live ISO / ISO build: the installer sets everything up
+    [ -f /etc/mkinitcpio.conf.d/archiso.conf ] && return 0
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/canos.conf 2>/dev/null
     local initramfs=0 grub=0
 
@@ -75,6 +77,15 @@ _canos_upgrade() {
         sed -i -E 's/^#\s*(en_US\.UTF-8 UTF-8|de_AT\.UTF-8 UTF-8|de_DE\.UTF-8 UTF-8)/\1/' /etc/locale.gen
         [ "$before" != "$(md5sum /etc/locale.gen)" ] && locale-gen >/dev/null 2>&1
     fi
+
+    # canos-fetch when a terminal opens, also for existing users (fish config from the CachyOS default)
+    local f
+    for f in /home/*/.config/fish/config.fish /etc/skel/.config/fish/config.fish; do
+        [ -f "$f" ] || continue
+        grep -q 'cachyos-config.fish' "$f" || continue
+        grep -q '^function fish_greeting' "$f" && continue
+        printf '\n# CanOS: system info when a terminal opens (canos-fetch --full shows everything)\nfunction fish_greeting\n    if command -q canos-fetch\n        canos-fetch\n    else\n        fastfetch\n    end\nend\n' >> "$f"
+    done
 
     if [ $initramfs = 1 ] && command -v mkinitcpio >/dev/null; then
         echo "  -> CanOS: rebuilding the initramfs (boot animation)"
