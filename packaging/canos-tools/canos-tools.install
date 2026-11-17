@@ -1,17 +1,96 @@
-post_install() {
+# canos-tools: keeps an installed CanOS on the same level as a fresh install (runs on every update)
+
+_grub_set() {
+    sed -i -e "/^#\?$1=/d" /etc/default/grub
+    echo "$1=\"$2\"" >> /etc/default/grub
+}
+
+_canos_upgrade() {
     systemd-tmpfiles --create /usr/lib/tmpfiles.d/canos.conf 2>/dev/null
-    # CanOS boot menu order (10_canos, 30_canos_os-prober, 42_canos_advanced)
+    local initramfs=0 grub=0
+
+    # boot menu order (10_canos, 30_canos_os-prober, 30_canos_uefi-firmware, 42_canos_advanced)
+    if [ -f /etc/grub.d/10_linux ] && [ -x /etc/grub.d/10_linux ]; then grub=1; fi
     chmod -x /etc/grub.d/10_linux /etc/grub.d/30_os-prober /etc/grub.d/30_uefi-firmware /etc/grub.d/31_efi_bootnext 2>/dev/null
-    # newer GRUB theme for systems installed from an older ISO
-    if [ -d /usr/share/grub/themes/canos ]; then
+
+    # newest GRUB theme
+    if [ -d /usr/share/grub/themes/canos ] && ! cmp -s /usr/share/canos/grub-theme/theme.txt /usr/share/grub/themes/canos/theme.txt; then
         rm -rf /usr/share/grub/themes/canos
         cp -r /usr/share/canos/grub-theme /usr/share/grub/themes/canos
+        grub=1
     fi
-    if [ -f /boot/grub/grub.cfg ] && grep -q 'themes/canos' /boot/grub/grub.cfg && command -v grub-mkconfig >/dev/null; then
+
+    # boot animation (Plymouth) + quiet boot
+    if command -v plymouth >/dev/null; then
+        if ! grep -q '^Theme=canos' /etc/plymouth/plymouthd.conf 2>/dev/null; then
+            mkdir -p /etc/plymouth
+            printf '[Daemon]\nTheme=canos\nShowDelay=0\nDeviceTimeout=8\n' > /etc/plymouth/plymouthd.conf
+            initramfs=1
+        fi
+        if [ -f /etc/mkinitcpio.conf ] && ! grep -q '^HOOKS=.*plymouth' /etc/mkinitcpio.conf; then
+            if grep -q '^HOOKS=.*\bsd-vconsole\b' /etc/mkinitcpio.conf; then
+                sed -i -E '/^HOOKS=/s/\bsd-vconsole\b/sd-vconsole plymouth/' /etc/mkinitcpio.conf
+            elif grep -q '^HOOKS=.*\bkms\b' /etc/mkinitcpio.conf; then
+                sed -i -E '/^HOOKS=/s/\bkms\b/kms plymouth/' /etc/mkinitcpio.conf
+            else
+                sed -i -E '/^HOOKS=/s/\budev\b/udev plymouth/; /^HOOKS=/s/\bsystemd\b/systemd plymouth/' /etc/mkinitcpio.conf
+            fi
+            initramfs=1
+        fi
+        if [ -f /etc/default/grub ] && ! grep -q '^GRUB_CMDLINE_LINUX_DEFAULT=.*splash' /etc/default/grub; then
+            _grub_set GRUB_CMDLINE_LINUX_DEFAULT "nowatchdog nvme_load=YES quiet splash loglevel=3 rd.udev.log_level=3 systemd.show_status=auto vt.global_cursor_default=0 nvidia_drm.modeset=1 nvidia_drm.fbdev=1"
+            _grub_set GRUB_GFXPAYLOAD_LINUX keep
+            grub=1
+        fi
+    fi
+
+    # NVIDIA: load the driver early (smooth boot animation)
+    if [ ! -f /etc/mkinitcpio.conf.d/canos-nvidia.conf ] && lspci 2>/dev/null | grep -qi 'vga.*nvidia\|3d.*nvidia' \
+        && find /usr/lib/modules -name 'nvidia_drm.ko*' 2>/dev/null | grep -q .; then
+        echo 'MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)' > /etc/mkinitcpio.conf.d/canos-nvidia.conf
+        initramfs=1
+    fi
+
+    # main entry boots the normal kernel
+    if [ -f /etc/default/grub ] && [ -f /boot/vmlinuz-linux-cachyos ] && ! grep -q '^GRUB_TOP_LEVEL=' /etc/default/grub; then
+        _grub_set GRUB_TOP_LEVEL "/boot/vmlinuz-linux-cachyos"
+        grub=1
+    fi
+    if [ -f /etc/default/grub ] && ! grep -q '^GRUB_DISABLE_OS_PROBER="\?false' /etc/default/grub; then
+        _grub_set GRUB_DISABLE_OS_PROBER false
+        grub=1
+    fi
+
+    # faster boot: no wait for an internet clock, ZFS units only on ZFS
+    systemctl disable systemd-time-wait-sync.service >/dev/null 2>&1
+    rm -f /etc/systemd/system/sysinit.target.wants/systemd-time-wait-sync.service
+    if [ "$(findmnt -no FSTYPE / 2>/dev/null)" != "zfs" ]; then
+        systemctl disable zfs-import-cache.service zfs-import-scan.service zfs-mount.service zfs-share.service \
+            zfs-zed.service zfs-import.target zfs-volumes.target zfs.target >/dev/null 2>&1
+    fi
+
+    # both Canvas languages need their locale
+    if [ -f /etc/locale.gen ]; then
+        local before; before=$(md5sum /etc/locale.gen)
+        sed -i -E 's/^#\s*(en_US\.UTF-8 UTF-8|de_AT\.UTF-8 UTF-8|de_DE\.UTF-8 UTF-8)/\1/' /etc/locale.gen
+        [ "$before" != "$(md5sum /etc/locale.gen)" ] && locale-gen >/dev/null 2>&1
+    fi
+
+    if [ $initramfs = 1 ] && command -v mkinitcpio >/dev/null; then
+        echo "  -> CanOS: rebuilding the initramfs (boot animation)"
+        mkinitcpio -P >/dev/null 2>&1 || true
+        grub=1
+    fi
+    if [ $grub = 1 ] && [ -f /boot/grub/grub.cfg ] && command -v grub-mkconfig >/dev/null; then
+        echo "  -> CanOS: updating the boot menu"
         grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 || true
     fi
 }
 
+post_install() {
+    _canos_upgrade
+}
+
 post_upgrade() {
-    post_install
+    _canos_upgrade
 }
