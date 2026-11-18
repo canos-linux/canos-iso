@@ -13,7 +13,7 @@ for dir in /usr/lib/modules/*/; do
 done
 
 # NVIDIA: load the driver early (Plymouth + no flicker), only if it is installed
-if lspci 2>/dev/null | grep -qi 'vga.*nvidia\|3d.*nvidia' && find /usr/lib/modules -name 'nvidia_drm.ko*' 2>/dev/null | grep -q .; then
+if lspci 2>/dev/null | grep -qi 'vga.*nvidia\|3d.*nvidia' && find /usr/lib/modules -name 'nvidia[-_]drm.ko*' 2>/dev/null | grep -q .; then
     echo 'MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)' > /etc/mkinitcpio.conf.d/canos-nvidia.conf
 fi
 
