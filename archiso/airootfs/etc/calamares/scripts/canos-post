@@ -37,5 +37,8 @@ if command -v plymouth >/dev/null && ! grep -q '^HOOKS=.*plymouth' /etc/mkinitcp
     sed -i -E 's/^(HOOKS=\(.*)(\bkms\b|\bmodconf\b)/\1\2 plymouth/' /etc/mkinitcpio.conf
     grep -q '^HOOKS=.*plymouth' /etc/mkinitcpio.conf && mkinitcpio -P >/dev/null 2>&1
 fi
+# no live-ISO welcome text, rate-mirrors timer not masked (pacman error on its updates)
+: > /etc/motd
+[ "$(readlink /etc/systemd/system/cachyos-rate-mirrors.timer 2>/dev/null)" = /dev/null ] && rm -f /etc/systemd/system/cachyos-rate-mirrors.timer
 systemctl disable canos-copytoram.service 2>/dev/null; rm -f /etc/systemd/system/canos-copytoram.service
 exit 0

@@ -1,4 +1,6 @@
 #!/bin/bash
+# packages must not get group-writable dirs (container umask is 002)
+umask 022
 # build-repo.sh [local|publish] - build the CanOS packages (canvas, canos-tools)
 #   local   - put them into the ISO build repo ~/CanOS/pkg/repo (canos-local)
 #   publish - upload them to the online repo [canos] (GitHub release canos-linux/canos-repo, tag x86_64)

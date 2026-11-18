@@ -1,6 +1,6 @@
 pkgname=canos-tools
 pkgver=1.0.2
-pkgrel=3
+pkgrel=4
 pkgdesc="CanOS system files: canos-update, canos-fetch, os-release, boot menu and animation, default apps"
 arch=(any)
 url="https://github.com/canos-linux/canos-iso"
@@ -9,8 +9,8 @@ depends=(pacman-contrib fastfetch plymouth)
 optdepends=('imagemagick: canos-fetch logo in the theme color')
 install=canos-tools.install
 backup=(etc/xdg/mimeapps.list)
-source=(canos-update canos-fetch os-release logo.txt logo.png canos-os-release.hook canos-grub.hook canos.tmpfiles mimeapps.list)
-sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP)
+source=(canos-update canos-fetch os-release logo.txt logo.png canos-os-release.hook canos-grub.hook canos.tmpfiles mimeapps.list canos.sudoers)
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP)
 
 package() {
   install -Dm755 canos-update "$pkgdir/usr/bin/canos-update"
@@ -21,6 +21,8 @@ package() {
   install -Dm755 canos-fetch "$pkgdir/usr/bin/canos-fetch"
   install -Dm644 logo.png "$pkgdir/usr/share/canos/logo.png"
   install -Dm644 canos-grub.hook "$pkgdir/usr/share/libalpm/hooks/canos-grub.hook"
+  install -dm750 "$pkgdir/etc/sudoers.d"
+  install -m440 canos.sudoers "$pkgdir/etc/sudoers.d/10-canos"
   install -Dm644 canos.tmpfiles "$pkgdir/usr/lib/tmpfiles.d/canos.conf"
   local here="${startdir:-$PWD}"
   for f in "$here"/grub.d/*; do install -Dm755 "$f" "$pkgdir/etc/grub.d/$(basename "$f")"; done

@@ -87,6 +87,18 @@ _canos_upgrade() {
         printf '\n# CanOS: system info when a terminal opens (canos-fetch --full shows everything)\nfunction fish_greeting\n    if command -q canos-fetch\n        canos-fetch\n    else\n        fastfetch\n    end\nend\n' >> "$f"
     done
 
+    # bash users too (accounts from before /etc/skel/.bashrc had canos-fetch)
+    for f in /home/*/.bashrc; do
+        [ -f "$f" ] || continue
+        grep -q 'canos-fetch' "$f" && continue
+        printf '\n# CanOS: system info when a terminal opens (canos-fetch --full shows everything)\n[ -z "${CANOS_NO_FETCH:-}" ] && command -v canos-fetch >/dev/null && canos-fetch\n' >> "$f"
+    done
+
+    # no live-ISO welcome text on installed systems
+    grep -q 'Live environment' /etc/motd 2>/dev/null && : > /etc/motd
+    # the ISO masks cachyos-rate-mirrors.timer -> pacman showed an error on every update of that package
+    [ "$(readlink /etc/systemd/system/cachyos-rate-mirrors.timer 2>/dev/null)" = /dev/null ] && rm -f /etc/systemd/system/cachyos-rate-mirrors.timer
+
     if [ $initramfs = 1 ] && command -v mkinitcpio >/dev/null; then
         echo "  -> CanOS: rebuilding the initramfs (boot animation)"
         mkinitcpio -P >/dev/null 2>&1 || true

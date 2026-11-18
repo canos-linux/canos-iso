@@ -20,6 +20,8 @@ done
 hex=${hex:-b9a4ff}
 acc="38;2;$((16#${hex:0:2}));$((16#${hex:2:2}));$((16#${hex:4:2}))"
 dim="38;2;138;132;148"
+# the text console (TTY) has no true color
+[ "${TERM:-}" = linux ] && acc="1;35" dim="90"
 
 de=0; case "${LANG:-}" in de*) de=1 ;; esac
 t() { [ $de = 1 ] && printf '%s' "$2" || printf '%s' "$1"; }

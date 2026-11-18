@@ -5,6 +5,8 @@ _greeter() {
     if grep -q '^command = "cage .*canvas/greeter/shell.qml"' "$c"; then
         sed -i 's|^command = "cage .*canvas/greeter/shell.qml"|command = "/usr/share/canvas/greeter/start-greeter"|' "$c"
         echo "  -> login screen now uses Hyprland (active after the next restart)"
+        # greetd keeps the old command until it restarts: logging out would end on a black screen
+        mkdir -p /run/canvas && touch /run/canvas/greeter-restart
     fi
 }
 

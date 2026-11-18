@@ -1,13 +1,33 @@
 #!/bin/bash
 # canos-update - update CanOS: snapshot (if snapper is set up), system packages, flatpaks
 set -u
-c=$'\e[1;38;2;185;164;255m' n=$'\e[0m'
-de=0; case "${LANG:-}" in de*) de=1 ;; esac
+c=$'\e[1;38;2;185;164;255m' r=$'\e[1;31m' n=$'\e[0m'
+de=0; case "${LANGUAGE:-${LANG:-}}" in de*) de=1 ;; esac
 t() { [ $de = 1 ] && echo "$2" || echo "$1"; }
 say() { printf '\n%s==>%s %s\n' "$c" "$n" "$*"; }
-pause() { [ -t 0 ] && read -rp "$(t 'Press Enter to close' 'Enter zum Schließen') "; }
+pause() {
+    [ -t 0 ] || return 0
+    local s
+    for s in 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1; do
+        printf '\r%s ' "$(t "Closing in $s s – press Enter to close now" "Schließt in $s s – Enter zum sofort Schließen")"
+        read -rs -t 1 && break
+    done
+    echo
+}
+online() {
+    local h
+    for h in https://archlinux.cachyos.org https://github.com https://geo.mirror.pkgbuild.com; do
+        curl -fsI --max-time 6 -o /dev/null "$h" && return 0
+    done
+    return 1
+}
 
 say "$(t 'CanOS Update' 'CanOS-Update')"
+if ! online; then
+    printf '\n%s%s%s\n' "$r" "$(t 'No internet connection – connect to Wi-Fi and try again.' 'Keine Internetverbindung – verbinde dich mit einem WLAN und versuch es nochmal.')" "$n"
+    command -v canvas >/dev/null && canvas notify "CanOS" "$(t 'No internet connection' 'Keine Internetverbindung')" "" 2>/dev/null
+    pause; exit 1
+fi
 kernel_before=$(uname -r)
 canvas_before=$(pacman -Q canvas 2>/dev/null)
 if command -v snapper >/dev/null && sudo snapper list-configs 2>/dev/null | grep -q '^root '; then
@@ -25,6 +45,7 @@ if command -v flatpak >/dev/null && [ -n "$(flatpak list --app 2>/dev/null)" ]; 
     flatpak update -y --noninteractive || true
 fi
 msg="$(t 'Everything is up to date' 'Alles ist aktuell')"
+[ -e /run/canvas/greeter-restart ] && msg="$(t 'Restart to finish the update' 'Neu starten, um das Update abzuschließen')"
 [ -d "/usr/lib/modules/$kernel_before" ] || msg="$(t 'Restart to use the new kernel' 'Neu starten, um den neuen Kernel zu verwenden')"
 [ -n "$canvas_before" ] && [ "$(pacman -Q canvas 2>/dev/null)" != "$canvas_before" ] && command -v canvas >/dev/null && { say "$(t 'Restarting Canvas' 'Canvas wird neu gestartet')"; canvas restart >/dev/null 2>&1; sleep 3; }
 command -v canvas >/dev/null && canvas notify "CanOS" "$(t 'System updated' 'System aktualisiert')" "$msg" 2>/dev/null
