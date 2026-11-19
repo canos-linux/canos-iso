@@ -79,3 +79,6 @@ trap 'trap_exit USR1 "$(gettext "An unknown error has occurred. Exiting...")"' E
 trap 'trap_exit EXIT "$(gettext "An unknown error has occurred. Exiting...")"' EXIT
 
 run_build "${build_list_iso}"
+# finished without error: no "unknown error" message from the EXIT trap
+trap - EXIT ERR
+umount_fs || true

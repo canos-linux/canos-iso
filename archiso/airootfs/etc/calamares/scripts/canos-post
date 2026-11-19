@@ -14,14 +14,35 @@ fi
 sed -i -E 's/^#\s*(en_US\.UTF-8 UTF-8|de_AT\.UTF-8 UTF-8|de_DE\.UTF-8 UTF-8)/\1/' /etc/locale.gen
 locale-gen >/dev/null 2>&1
 
-# CanOS first in the UEFI boot order (some firmwares keep Windows Boot Manager first)
+# CanOS first in the UEFI boot order (some firmwares keep Windows Boot Manager first).
+# The "canos" entry must point to the ESP this install uses: entries left from an older
+# install on another ESP are removed, a missing entry is created (grub-install can fail
+# to write it, then an old entry would win and boot an old GRUB).
 if [ -d /sys/firmware/efi ] && command -v efibootmgr >/dev/null; then
-    out=$(efibootmgr 2>/dev/null)
-    id=$(printf '%s\n' "$out" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\*\{0,1\} canos\b.*/\1/Ip' | head -1)
-    order=$(printf '%s\n' "$out" | sed -n 's/^BootOrder: //p')
-    if [ -n "$id" ]; then
-        rest=$(printf '%s' "$order" | tr ',' '\n' | grep -vix "$id" | paste -sd, -)
-        efibootmgr -o "$id${rest:+,$rest}" >/dev/null 2>&1
+    esp=$(findmnt -no SOURCE /boot/efi 2>/dev/null)
+    if [ -n "$esp" ] && [ -f /boot/efi/EFI/canos/grubx64.efi ]; then
+        puuid=$(lsblk -no PARTUUID "$esp" | tr 'A-Z' 'a-z')
+        disk=/dev/$(lsblk -no PKNAME "$esp")
+        partn=$(cat "/sys/class/block/$(basename "$esp")/partition" 2>/dev/null)
+        id=""
+        while IFS= read -r line; do
+            n=$(printf '%s\n' "$line" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\*\{0,1\} canos\b.*/\1/Ip')
+            [ -n "$n" ] || continue
+            if [ -z "$id" ] && [ -n "$puuid" ] && printf '%s' "$line" | tr 'A-Z' 'a-z' | grep -q "$puuid"; then
+                id=$n
+            else
+                efibootmgr -q -b "$n" -B >/dev/null 2>&1
+            fi
+        done <<< "$(efibootmgr -v 2>/dev/null)"
+        if [ -z "$id" ] && [ -n "$partn" ]; then
+            efibootmgr -q -c -d "$disk" -p "$partn" -L canos -l '\EFI\canos\grubx64.efi' >/dev/null 2>&1
+            id=$(efibootmgr 2>/dev/null | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\*\{0,1\} canos\b.*/\1/Ip' | head -1)
+        fi
+        if [ -n "$id" ]; then
+            order=$(efibootmgr 2>/dev/null | sed -n 's/^BootOrder: //p')
+            rest=$(printf '%s' "$order" | tr ',' '\n' | grep -vix "$id" | paste -sd, -)
+            efibootmgr -q -o "$id${rest:+,$rest}" >/dev/null 2>&1
+        fi
     fi
 fi
 

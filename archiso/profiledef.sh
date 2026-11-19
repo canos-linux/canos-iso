@@ -5,7 +5,7 @@ iso_name="canos"
 iso_label="CANOS_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
 iso_publisher="CanOS"
 iso_application="CanOS Live"
-iso_version="1.0.2"
+iso_version="1.0.3"
 install_dir="arch"
 buildmodes=('iso')
 ## GRUB

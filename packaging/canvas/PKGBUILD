@@ -13,7 +13,7 @@ optdepends=('hyprsunset: night light' 'udiskie: automount USB drives' 'pacman-co
 package() {
   local src="${CANVAS_SRC:-$HOME/CanOS/canvas}"
   install -d "$pkgdir/usr/share/canvas" "$pkgdir/usr/bin"
-  git -C "$src" archive HEAD | tar -x -C "$pkgdir/usr/share/canvas"
+  git -C "$src" -c tar.umask=0022 archive HEAD | tar -x -C "$pkgdir/usr/share/canvas"
   chmod 755 "$pkgdir/usr/share/canvas/bin/"* "$pkgdir/usr/share/canvas/greeter/install-greeter" "$pkgdir/usr/share/canvas/greeter/start-greeter" "$pkgdir/usr/share/canvas/greeter/start-session"
   ln -s /usr/share/canvas/bin/canvas "$pkgdir/usr/bin/canvas"
 }
