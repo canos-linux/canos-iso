@@ -16,4 +16,5 @@ package() {
   git -C "$src" -c tar.umask=0022 archive HEAD | tar -x -C "$pkgdir/usr/share/canvas"
   chmod 755 "$pkgdir/usr/share/canvas/bin/"* "$pkgdir/usr/share/canvas/greeter/install-greeter" "$pkgdir/usr/share/canvas/greeter/start-greeter" "$pkgdir/usr/share/canvas/greeter/start-session"
   ln -s /usr/share/canvas/bin/canvas "$pkgdir/usr/bin/canvas"
+  install -Dm644 "$pkgdir"/usr/share/canvas/applications/*.desktop -t "$pkgdir/usr/share/applications/"
 }
