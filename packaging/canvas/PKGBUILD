@@ -6,9 +6,9 @@ pkgdesc="Canvas – the desktop of CanOS (Quickshell shell for Hyprland)"
 arch=(any)
 url="https://github.com/canos-linux/canvas"
 license=(GPL-3.0-only)
-depends=(quickshell hyprland)
+depends=(quickshell hyprland wf-recorder slurp curl)
 install=canvas.install
-optdepends=('hyprsunset: night light' 'udiskie: automount USB drives' 'pacman-contrib: update check')
+optdepends=('hyprsunset: night light' 'udiskie: automount USB drives' 'pacman-contrib: update check' 'kdeconnect: connect your phone' 'fd: faster file search in the launcher')
 
 package() {
   local src="${CANVAS_SRC:-$HOME/CanOS/canvas}"
